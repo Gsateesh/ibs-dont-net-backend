@@ -1,0 +1,22 @@
+<Project>
+
+  <!-- Settings shared by every project in the IBS solution. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <!-- XML docs are the source of the Swagger descriptions, so every project emits them.
+         CS1591 (missing doc comment) is muted: docs are required where they add value, not everywhere. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <Company>IBS</Company>
+    <Product>IBS Backend Service</Product>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+</Project>

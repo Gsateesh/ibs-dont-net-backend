@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+*.user
+
+# Local data
+App_Data/
+*.mdf
+*.ldf
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+
+# Local secrets: connection strings and keys belong in Key Vault or user secrets,
+# never in a committed file.
+appsettings.Local.json
+secrets.json

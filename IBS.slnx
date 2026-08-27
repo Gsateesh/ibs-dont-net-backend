@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IBS.Api/IBS.Api.csproj" />
+    <Project Path="src/IBS.Infrastructure/IBS.Infrastructure.csproj" />
+    <Project Path="src/IBS.Modules.Delivery/IBS.Modules.Delivery.csproj" />
+    <Project Path="src/IBS.Modules.Design/IBS.Modules.Design.csproj" />
+    <Project Path="src/IBS.Modules.Finance/IBS.Modules.Finance.csproj" />
+    <Project Path="src/IBS.Modules.Procurement/IBS.Modules.Procurement.csproj" />
+    <Project Path="src/IBS.Modules.Sales/IBS.Modules.Sales.csproj" />
+    <Project Path="src/IBS.Modules.UsersAccess/IBS.Modules.UsersAccess.csproj" />
+    <Project Path="src/IBS.SharedKernel/IBS.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/IBS.SeedSuperAdmin/IBS.SeedSuperAdmin.csproj" />
+  </Folder>
+</Solution>

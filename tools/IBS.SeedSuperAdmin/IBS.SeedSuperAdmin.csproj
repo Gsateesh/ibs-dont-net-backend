@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IBS.Infrastructure\IBS.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\IBS.Modules.UsersAccess\IBS.Modules.UsersAccess.csproj" />
+    <ProjectReference Include="..\..\src\IBS.SharedKernel\IBS.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <UserSecretsId>ibs-backend-service</UserSecretsId>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+</Project>

@@ -72,16 +72,25 @@ Open the new App Service -> left sidebar -> **Settings** -> **Configuration** ->
 |---|---|
 | `ConnectionStrings__IbsDatabase` | `Server=tcp:<your-sql-server>.database.windows.net,1433;Initial Catalog=ibs-dev;Persist Security Info=False;User ID=<admin-login>;Password=<admin-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;` |
 | `ASPNETCORE_ENVIRONMENT` | `Development` for the Dev app, `Production` for the Prod app - see the callout below, this genuinely changes behaviour. |
-| `UsersAccess__AppBaseUrl` | `https://ibs-api-dev.azurewebsites.net` - your own App Service's URL. This is what invite and reset links point at, so it must match exactly. |
-| `WEBSITE_RUN_FROM_PACKAGE` | `1` - makes the app run directly from the deployed zip, the standard fast path for .NET on App Service. |
+| `Jwt__SigningKey` | A random secret of **32 characters or more**. **The API will not start without this** - it is validated at startup. Generate a different one per environment; a key leaked from Dev must not be able to forge Prod tokens. |
+| `Jwt__Issuer` | e.g. `ibs-dev` (or `ibs-prod`). Must be set - it is validated on every token. |
+| `Jwt__Audience` | Same value as the issuer is fine, e.g. `ibs-dev`. Must be set. |
+| `Cors__AllowedOrigins__0` | The **Static Web App's** origin, e.g. `https://<swa-name>.azurestaticapps.net`. The frontend is hosted separately, so without this every browser call to the API fails its CORS preflight. Add `__1`, `__2` rows for further origins. |
+| `UsersAccess__AppBaseUrl` | The **frontend's** origin - the Static Web App, *not* this App Service. Invite and reset links are built as `{AppBaseUrl}/activate?token=...`, and `/activate` is an Angular route; this API's `wwwroot` is empty and serves no UI. Point it here and the links land on nothing. |
+| `Storage__ConnectionString` | The storage account's connection string. **Required - the API crash-loops on startup without it.** Create the account in Part D first; this row is here so the required settings are all in one list. |
+| `WEBSITE_RUN_FROM_PACKAGE` | `0`, or leave it unset entirely - **do not set this to `1`**. See the callout below. |
 
 Click **Save** at the top, then **Continue** through the restart prompt.
 
 **Why `ASPNETCORE_ENVIRONMENT` matters here, specifically:** your spec (section 2) wants EF Core migrations to apply automatically on startup in Dev/Test, and `Program.cs` already does exactly that when the environment is `Development` - so the *first* deploy will create the schema on its own, no extra step. On Prod, migrations are meant to be an explicit, deliberate action, never automatic against live data - so if you set `ASPNETCORE_ENVIRONMENT=Production`, you must run `dotnet ef database update` yourself, pointed at the Prod connection string, before that App Service will have a usable schema. I can run that one command for you when you're ready for the Prod pass, or hand you the exact line to run yourself.
 
-## Part D - Storage Account (optional, for photo/document uploads)
+**Why `WEBSITE_RUN_FROM_PACKAGE` must stay off:** the release route for this API is an FTP upload of the published files to `/site/wwwroot` - see "Releasing to the App Service" in the README. While this setting is `1`, App Service mounts a read-only filesystem from a deployed package and ignores `/site/wwwroot` completely. Uploaded files transfer, the FTP client reports success, and the old build keeps serving, with nothing anywhere reporting an error. Set it to `1` only if you deliberately switch to zip deploy, and be aware that FTP uploads stop taking effect the moment you do.
 
-Skip this if you don't need employee photo or document uploads to work yet - everything else (sign-in, Team, Add Person, permissions, audit log) works without it.
+## Part D - Storage Account (REQUIRED - do this before you deploy)
+
+> **This is not optional, and an earlier version of this document wrongly said it was.** The API calls `AddIbsInfrastructure` at startup, which **throws and kills the process** when `Storage__ConnectionString` is missing. There is no local-disk fallback: it was removed deliberately, because it wrote to a folder App Service wipes on every deploy, so uploads looked fine until the files silently vanished.
+>
+> Skipping this part does not cost you photo uploads. It costs you the whole API - it will crash-loop on startup, and on an F1 plan the restart churn will burn through the daily CPU quota and leave the app stuck in **Quota exceeded**, where the Start button does nothing.
 
 1. Portal search bar -> **Storage accounts** -> **+ Create**.
 2. Same resource group, **Standard** performance, **LRS** redundancy (Dev) or **GRS** (Prod, per spec).
@@ -94,43 +103,32 @@ Skip this if you don't need employee photo or document uploads to work yet - eve
 
 ---
 
-## Rotate the SQL password before you go further
-
-The password used in earlier testing this session went through chat in plaintext. If you're standing up a brand-new SQL Server here with a fresh admin password, that's already solved - just don't reuse the old one.
-
----
-
 ## Deploying the code itself
 
-Creating resources and deploying code are two different actions - everything above stands up empty infrastructure with no app running on it yet. You have two options for this part:
+Creating resources and deploying code are two different actions - everything above stands up empty infrastructure with no app running on it yet.
 
-**Option 1 - I run it for you.** Once you've done `az login` in your own browser session (I can't do this step; it needs your credentials), tell me and I'll build, publish and zip-deploy the app to whichever App Service you've created, the same way I've been running it locally all session.
+**This App Service hosts the API and nothing else.** The Angular app is a separate deploy to its own Static Web App; it is never built into this project's `wwwroot`. See the frontend README for that half.
 
-**Option 2 - fully manual, via the Portal.** App Service -> **Deployment Center** -> **Local Git** or **ZIP Deploy**, then upload a zip you build yourself:
+The documented route is an FTP upload of the published output - build it, then upload it by hand:
 
 ```bash
-cd frontend-angular-app
-npx ng build
-rm -rf ../backend-service-dot-net-app/src/IBS.Api/wwwroot/*
-cp -r dist/frontend-angular-app/browser/* ../backend-service-dot-net-app/src/IBS.Api/wwwroot/
-cd ../backend-service-dot-net-app
 dotnet publish src/IBS.Api -c Release -o ./publish
-cd publish && zip -r ../ibs-deploy.zip . && cd ..
 ```
 
-Then drag `ibs-deploy.zip` onto the **Deployment Center > ZIP Deploy** panel, or use **Advanced Tools (Kudu) > Zip Push Deploy**.
+Full steps, including the `WEBSITE_RUN_FROM_PACKAGE` trap, are under **Releasing to the App Service** in the [backend README](../README.md).
+
+If you would rather use ZIP Deploy than FTP, zip the *contents* of `publish/` and drop the zip on **Deployment Center > ZIP Deploy**, or use **Advanced Tools (Kudu) > Zip Push Deploy** - but note that switching to zip deploy means FTP uploads stop taking effect, per the callout in Part C.
 
 ## Smoke test
 
 Once code is deployed:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" "https://ibs-api-dev.azurewebsites.net/"
 curl -s -o /dev/null -w "%{http_code}\n" "https://ibs-api-dev.azurewebsites.net/swagger/v1/swagger.json"
 curl -s -o /dev/null -w "%{http_code}\n" "https://ibs-api-dev.azurewebsites.net/api/employees"
 ```
 
-The last one should be `401` - signed out, same as locally. Then open the URL in a browser.
+The first should be `200`, the second `401` - signed out, same as locally. Don't smoke-test `/`: this App Service serves no UI, so the root has nothing to return. The site people visit is the Static Web App.
 
 ## First account
 
@@ -143,18 +141,13 @@ ConnectionStrings__IbsDatabase="<the same connection string you put in the App S
 
 Run this from your own machine, not on the App Service - the tool needs an interactive console for the password prompt.
 
-## The session-cookie gap still applies, Key Vault or not
+## Restarts and the signing key
 
-App Service restarts routinely - a deploy, a scale event, a nightly recycle. Each one can hand a fresh instance a *new* Data Protection key ring unless told to persist it, which silently logs out everyone signed in. Without Key Vault, the fix is simpler than before - just persist the keys to the Storage Account from Part D, no Key Vault wrapping needed:
+App Service restarts routinely - a deploy, a scale event, a nightly recycle - and it may run more than one instance. Bearer tokens survive all of that **as long as every instance signs with the same `Jwt__SigningKey`**, which an Application Setting guarantees: one value, read by every instance at startup.
 
-```csharp
-builder.Services.AddDataProtection()
-    .PersistKeysToAzureBlobStorage(
-        new Uri("https://<storage-account>.blob.core.windows.net/dataprotection/keys.xml"),
-        new DefaultAzureCredential());
-```
+The consequence worth remembering runs the other way. **Changing `Jwt__SigningKey` invalidates every token already issued**, signing everyone out at once. That is exactly the right response to a suspected leak, and a reason not to churn the value otherwise.
 
-This still needs the App Service's Managed Identity to have **Storage Blob Data Contributor** on the storage account (Storage Account -> **Access control (IAM)** -> **Add role assignment**), which is a Portal step too, not a code-only fix. Say the word and I'll wire the code side in.
+There is no Data Protection key ring to persist here - that was a requirement of the earlier cookie-based auth, which this API no longer uses.
 
 ## What this leaves out
 

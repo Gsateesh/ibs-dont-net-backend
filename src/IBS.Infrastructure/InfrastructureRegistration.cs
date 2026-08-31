@@ -6,12 +6,15 @@ using IBS.Infrastructure.Security;
 using IBS.Infrastructure.Storage;
 using IBS.Modules.Sales.Application.Abstractions;
 using IBS.Modules.UsersAccess.Application.Abstractions;
+using IBS.SharedKernel.Notifications;
+using IBS.SharedKernel.Storage;
 using IBS.SharedKernel.Auditing;
 using IBS.SharedKernel.Directories;
 using IBS.SharedKernel.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace IBS.Infrastructure;
 
@@ -65,23 +68,47 @@ public static class InfrastructureRegistration
 
         // Real Azure clients when configured; otherwise the local stand-ins, so a developer
         // machine needs no Azure resources to walk the invite and upload flows.
+        // The transport is chosen once and is stateless, so it stays a singleton; the logging
+        // decorator in front of it is scoped, because it writes a row through the DbContext.
         if (email.IsConfigured)
         {
-            services.AddSingleton<IEmailSender, AcsEmailSender>();
+            services.AddSingleton<AcsEmailDispatcher>();
+            services.AddScoped<IEmailDispatcher>(sp => new EmailLoggingDispatcher(
+                sp.GetRequiredService<AcsEmailDispatcher>(),
+                sp.GetRequiredService<IbsDbContext>(),
+                sp.GetRequiredService<IClock>(),
+                sp.GetRequiredService<ILogger<EmailLoggingDispatcher>>()));
         }
         else
         {
-            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+            services.AddSingleton<LoggingEmailDispatcher>();
+            services.AddScoped<IEmailDispatcher>(sp => new EmailLoggingDispatcher(
+                sp.GetRequiredService<LoggingEmailDispatcher>(),
+                sp.GetRequiredService<IbsDbContext>(),
+                sp.GetRequiredService<IClock>(),
+                sp.GetRequiredService<ILogger<EmailLoggingDispatcher>>()));
         }
 
-        if (storage.IsConfigured)
+        services.AddScoped<IEmailSender, TemplatedEmailSender>();
+
+        // Uploads go to Blob Storage or they do not happen at all. There is deliberately no
+        // local-disk fallback: it wrote to a folder that is wiped on every App Service deploy,
+        // so a misconfigured environment looked healthy right up until the files vanished.
+        // Failing at startup makes a missing connection string impossible to miss.
+        if (!storage.IsConfigured)
         {
-            services.AddSingleton<IFileStorage, BlobFileStorage>();
+            var found = Configuration.LocalSettings.Find();
+
+            throw new InvalidOperationException(
+                $"Storage:ConnectionString is missing. Set it in {Configuration.LocalSettings.FileName} " +
+                $"at the repository root. " +
+                (found is null
+                    ? $"No {Configuration.LocalSettings.FileName} was found from {AppContext.BaseDirectory}."
+                    : $"The file was read from {found}, but it has no such value.") +
+                " (In Azure this value comes from the Storage__ConnectionString app setting instead.)");
         }
-        else
-        {
-            services.AddSingleton<IFileStorage, LocalFileStorage>();
-        }
+
+        services.AddSingleton<IFileStorage, BlobFileStorage>();
 
         return services;
     }

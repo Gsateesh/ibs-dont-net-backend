@@ -75,4 +75,15 @@ public static class AuditActions
     public const string LeadUnassigned = "lead.unassigned";
     public const string LeadBulkAssigned = "lead.bulk_assigned";
     public const string LeadDeleted = "lead.deleted";
+    public const string LeadFloorPlanUploaded = "lead.floor_plan_uploaded";
+    public const string LeadFloorPlanDeleted = "lead.floor_plan_deleted";
+
+    public const string QuotationCreated = "quotation.created";
+    public const string QuotationUpdated = "quotation.updated";
+    public const string QuotationVersionCreated = "quotation.version_created";
+    public const string QuotationDeleted = "quotation.deleted";
+    public const string QuotationPdfGenerated = "quotation.pdf_generated";
+    public const string QuotationSent = "quotation.sent";
+    public const string QuotationApproved = "quotation.approved";
+    public const string QuotationRevisionRequested = "quotation.revision_requested";
 }

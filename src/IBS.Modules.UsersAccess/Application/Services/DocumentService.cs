@@ -4,6 +4,7 @@ using IBS.Modules.UsersAccess.Application.Options;
 using IBS.Modules.UsersAccess.Domain.Entities;
 using IBS.Modules.UsersAccess.Domain.Enums;
 using IBS.SharedKernel.Auditing;
+using IBS.SharedKernel.Storage;
 using IBS.SharedKernel.Exceptions;
 using IBS.SharedKernel.Security;
 using IBS.SharedKernel.Time;

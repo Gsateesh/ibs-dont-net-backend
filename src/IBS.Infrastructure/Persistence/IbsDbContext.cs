@@ -1,5 +1,6 @@
 using IBS.Modules.Sales.Application.Abstractions;
 using IBS.Modules.Sales.Domain.Entities;
+using IBS.Modules.Sales.Infrastructure.Seed;
 using IBS.Modules.UsersAccess.Application.Abstractions;
 using IBS.Modules.UsersAccess.Domain.Entities;
 using IBS.Modules.UsersAccess.Infrastructure.Seed;
@@ -36,8 +37,22 @@ public class IbsDbContext(DbContextOptions<IbsDbContext> options)
     // --- Sales module ---------------------------------------------------------------
 
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<LeadRoom> LeadRooms => Set<LeadRoom>();
+    public DbSet<LeadRoomRequirement> LeadRoomRequirements => Set<LeadRoomRequirement>();
+
+    public DbSet<Quotation> Quotations => Set<Quotation>();
+    public DbSet<QuotationRoom> QuotationRooms => Set<QuotationRoom>();
+    public DbSet<QuotationLineItem> QuotationLineItems => Set<QuotationLineItem>();
+    public DbSet<QuotationDocument> QuotationDocuments => Set<QuotationDocument>();
+    public DbSet<QuotationCatalogEntry> QuotationCatalogEntries => Set<QuotationCatalogEntry>();
+    public DbSet<QuotationRate> QuotationRates => Set<QuotationRate>();
 
     Task<int> ISalesDbContext.SaveChangesAsync(CancellationToken ct) => base.SaveChangesAsync(ct);
+
+    // --- Infrastructure -------------------------------------------------------------
+
+    /// <summary>Every outbound message, written by the dispatcher's logging decorator.</summary>
+    public DbSet<Email.EmailLog> EmailLogs => Set<Email.EmailLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +61,10 @@ public class IbsDbContext(DbContextOptions<IbsDbContext> options)
         // Each module owns its mapping; the context only collects them.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(Employee).Assembly);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(Lead).Assembly);
+
+        // Infrastructure owns a table of its own: the mail log, written around the dispatcher
+        // rather than by any one module.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(IbsDbContext).Assembly);
 
         SeedReferenceData(modelBuilder);
     }
@@ -61,5 +80,9 @@ public class IbsDbContext(DbContextOptions<IbsDbContext> options)
         modelBuilder.Entity<Department>().HasData(LookupSeed.Departments);
         modelBuilder.Entity<Designation>().HasData(LookupSeed.Designations);
         modelBuilder.Entity<Permission>().HasData(PermissionSeed.All);
+
+        // The quotation picker and its rate card. Placeholder pricing - see the seed's remarks.
+        modelBuilder.Entity<QuotationCatalogEntry>().HasData(QuotationCatalogSeed.Entries);
+        modelBuilder.Entity<QuotationRate>().HasData(QuotationCatalogSeed.Rates);
     }
 }

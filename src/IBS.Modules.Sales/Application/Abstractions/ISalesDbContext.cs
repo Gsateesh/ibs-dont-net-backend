@@ -12,5 +12,23 @@ public interface ISalesDbContext
 {
     DbSet<Lead> Leads { get; }
 
+    DbSet<LeadRoom> LeadRooms { get; }
+
+    DbSet<LeadRoomRequirement> LeadRoomRequirements { get; }
+
+    DbSet<Quotation> Quotations { get; }
+
+    DbSet<QuotationRoom> QuotationRooms { get; }
+
+    DbSet<QuotationLineItem> QuotationLineItems { get; }
+
+    DbSet<QuotationDocument> QuotationDocuments { get; }
+
+    /// <summary>The item picker's contents. Read-only from this module; edited by an admin screen.</summary>
+    DbSet<QuotationCatalogEntry> QuotationCatalogEntries { get; }
+
+    /// <summary>The rate card. Read-only from this module for the same reason.</summary>
+    DbSet<QuotationRate> QuotationRates { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

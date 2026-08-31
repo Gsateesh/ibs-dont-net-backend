@@ -4,7 +4,7 @@ using IBS.SharedKernel.Security;
 namespace IBS.Modules.UsersAccess.Infrastructure.Seed;
 
 /// <summary>
-/// The 20 permissions from spec section 4.4, seeded by migration with fixed ids so the same
+/// The 22 permissions from spec section 4.4, seeded by migration with fixed ids so the same
 /// row exists in every environment. A new permission is added here only alongside the
 /// migration that ships the feature it gates - never through the UI.
 /// </summary>
@@ -25,9 +25,13 @@ public static class PermissionSeed
         Make(4, PermissionCodes.ManageCustomerOnboarding, "Can manage customer onboarding", PermissionGroups.SalesPipeline,
             "Create and progress customer onboarding records."),
         Make(5, PermissionCodes.ManageQuotations, "Can manage quotations", PermissionGroups.SalesPipeline,
-            "Prepare, revise and issue quotations."),
+            "Build and revise quotation drafts, and generate their PDFs."),
+        Make(22, PermissionCodes.ApproveQuotations, "Can issue and approve quotations", PermissionGroups.SalesPipeline,
+            "Email a quotation to the client and record their approval or rejection."),
         Make(20, PermissionCodes.ManageLeads, "Can manage leads", PermissionGroups.SalesPipeline,
             "View all leads, create, edit, delete and (re)assign them to any employee."),
+        Make(21, PermissionCodes.ManageOwnLeads, "Can manage own leads", PermissionGroups.SalesPipeline,
+            "View and edit only the leads assigned to them. Cannot reassign or delete a lead."),
 
         Make(6, PermissionCodes.ManageDesigns, "Can manage designs", PermissionGroups.DesignAndEstimation,
             "Upload and revise design files and moodboards."),

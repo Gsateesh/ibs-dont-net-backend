@@ -11,10 +11,11 @@ namespace IBS.Api.Controllers;
 /// Lead capture and assignment.
 /// </summary>
 /// <remarks>
-/// Reading (list/detail) is open to every signed-in employee: the service scopes the result to
-/// the caller's own assigned leads unless they hold manage_leads, in which case they see and
-/// manage everything. Every mutating action, plus the assignable-employees lookup and the
-/// assignment history, requires manage_leads. The checks live in the service layer.
+/// Two permissions open this module. manage_own_leads sees and edits only the leads assigned
+/// to the caller; manage_leads sees and edits every lead and additionally may assign, reassign
+/// and delete. A caller holding neither is refused outright. A lead outside the caller's reach
+/// answers 404 rather than 403, so ids cannot be probed. The checks live in the service layer -
+/// the attributes below only document them.
 /// </remarks>
 [ApiController]
 [Route("api/leads")]
@@ -29,6 +30,7 @@ public sealed class LeadsController(ILeadService leads, ICurrentUser currentUser
     /// </remarks>
     /// <response code="200">A page of leads.</response>
     [HttpGet]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [ProducesResponseType<PagedResult<LeadListItemResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<LeadListItemResponse>>> List(
         [FromQuery] LeadQuery query, CancellationToken ct) =>
@@ -40,16 +42,20 @@ public sealed class LeadsController(ILeadService leads, ICurrentUser currentUser
     /// <response code="200">The lead.</response>
     /// <response code="404">No such lead, or it is not visible to you.</response>
     [HttpGet("{id:guid}")]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LeadDetailResponse>> Get(Guid id, CancellationToken ct) =>
         Ok(await leads.GetAsync(id, currentUser.RequireEmployeeId(), ct));
 
     /// <summary>Creates a lead.</summary>
-    /// <remarks>Starts at Status = New. May optionally be assigned at creation.</remarks>
+    /// <remarks>
+    /// Starts at Status = New. A manage_leads holder may assign it to anyone at creation; a
+    /// manage_own_leads holder always gets it assigned to themself.
+    /// </remarks>
     /// <response code="201">Created.</response>
     [HttpPost]
-    [RequiresPermission(PermissionCodes.ManageLeads)]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<LeadDetailResponse>> Create(CreateLeadRequest request, CancellationToken ct)
     {
@@ -62,7 +68,7 @@ public sealed class LeadsController(ILeadService leads, ICurrentUser currentUser
     /// <response code="200">The updated lead.</response>
     /// <response code="404">No such lead.</response>
     [HttpPut("{id:guid}")]
-    [RequiresPermission(PermissionCodes.ManageLeads)]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LeadDetailResponse>> Update(
@@ -108,6 +114,85 @@ public sealed class LeadsController(ILeadService leads, ICurrentUser currentUser
     [ProducesResponseType<BulkAssignResult>(StatusCodes.Status200OK)]
     public async Task<ActionResult<BulkAssignResult>> BulkAssign(BulkAssignLeadsRequest request, CancellationToken ct) =>
         Ok(await leads.BulkAssignAsync(request, currentUser.RequireEmployeeId(), ct));
+
+    /// <summary>Returns the lead's floor plan image.</summary>
+    /// <remarks>
+    /// Streamed through the API rather than served from a storage URL, so the image is exactly
+    /// as visible as the lead itself: an owner can fetch the plan of a lead assigned to them and
+    /// gets a 404 for anyone else's.
+    /// </remarks>
+    /// <response code="200">The image bytes.</response>
+    /// <response code="404">No such lead, it is not visible to you, or it has no floor plan.</response>
+    // Deliberately no [Produces] listing the image types: it would also constrain the
+    // ProblemDetails this action returns on a miss, which is JSON.
+    [HttpGet("{id:guid}/floor-plan")]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetFloorPlan(Guid id, CancellationToken ct)
+    {
+        var plan = await leads.OpenFloorPlanAsync(id, currentUser.RequireEmployeeId(), ct);
+
+        if (plan is null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "No floor plan",
+                Detail = "This lead has no floor plan on file."
+            });
+        }
+
+        // Inline rather than as an attachment: the form and the detail page show it as an image.
+        return File(plan.Content, plan.ContentType, enableRangeProcessing: true);
+    }
+
+    /// <summary>Uploads a floor plan, replacing any image already on file.</summary>
+    /// <param name="id">Lead id.</param>
+    /// <param name="file">A PNG, JPEG, WebP or GIF image.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <response code="200">The updated lead.</response>
+    /// <response code="400">No file was supplied, or it is not an accepted image type.</response>
+    /// <response code="404">No such lead.</response>
+    [HttpPost("{id:guid}/floor-plan")]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LeadDetailResponse>> UploadFloorPlan(Guid id, IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new ProblemDetails { Title = "No file", Detail = "Attach an image to upload." });
+        }
+
+        await using var stream = file.OpenReadStream();
+
+        return Ok(await leads.UploadFloorPlanAsync(
+            id, file.FileName, file.ContentType, stream, currentUser.RequireEmployeeId(), ct));
+    }
+
+    /// <summary>Removes the lead's floor plan, from both the database and storage.</summary>
+    /// <response code="200">The updated lead.</response>
+    /// <response code="400">The lead had no floor plan to begin with.</response>
+    /// <response code="404">No such lead.</response>
+    [HttpDelete("{id:guid}/floor-plan")]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
+    [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LeadDetailResponse>> DeleteFloorPlan(Guid id, CancellationToken ct) =>
+        Ok(await leads.DeleteFloorPlanAsync(id, currentUser.RequireEmployeeId(), ct));
+
+    /// <summary>Lead counts per phase, for the quick-filter chips above the Leads list.</summary>
+    /// <remarks>Scoped the same way the list is: an owner is counted only their own leads.</remarks>
+    /// <response code="200">A count for every phase that currently has at least one lead.</response>
+    [HttpGet("phase-counts")]
+    [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
+    [ProducesResponseType<IReadOnlyList<LeadPhaseCountResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<LeadPhaseCountResponse>>> GetPhaseCounts(CancellationToken ct) =>
+        Ok(await leads.GetPhaseCountsAsync(currentUser.RequireEmployeeId(), ct));
 
     /// <summary>Employees selectable as a lead's assignee, for the assignment dropdown.</summary>
     /// <response code="200">Active employees.</response>

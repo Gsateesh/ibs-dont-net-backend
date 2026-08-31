@@ -22,6 +22,85 @@ namespace IBS.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("IBS.Infrastructure.Email.EmailLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttachmentCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AttachmentNames")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("RelatedEntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RelatedEntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("SentByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ToEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ToName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind");
+
+                    b.HasIndex("SentAt");
+
+                    b.HasIndex("RelatedEntityType", "RelatedEntityId");
+
+                    b.ToTable("EmailLogs", (string)null);
+                });
+
             modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.Lead", b =>
                 {
                     b.Property<Guid>("Id")
@@ -43,6 +122,9 @@ namespace IBS.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("BudgetMin")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateOnly?>("ContactedDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -59,14 +141,48 @@ namespace IBS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("FloorPlanBlobUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FloorPlanContentType")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("FloorPlanFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long?>("FloorPlanSizeInBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("FloorPlanUploadedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsInterested")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateOnly?>("NextFollowUpDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("OverallStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("Phase")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(10);
 
                     b.Property<string>("Phone")
                         .IsRequired()
@@ -78,20 +194,29 @@ namespace IBS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("PropertyConfiguration")
+                        .HasColumnType("int");
+
                     b.Property<string>("PropertyName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<decimal?>("PropertySize")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("PropertySizeUnit")
+                        .HasColumnType("int");
+
                     b.Property<int>("PropertyType")
                         .HasColumnType("int");
+
+                    b.Property<DateOnly?>("QuotationSharedAt")
+                        .HasColumnType("date");
 
                     b.Property<string>("SecondaryPhone")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -105,9 +230,2188 @@ namespace IBS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("Status");
+                    b.HasIndex("NextFollowUpDate");
+
+                    b.HasIndex("OverallStatus");
+
+                    b.HasIndex("Phase");
 
                     b.ToTable("Leads", (string)null);
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.LeadRoom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LeadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RoomKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RoomName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeadId");
+
+                    b.ToTable("LeadRooms", (string)null);
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.LeadRoomRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ItemKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("LeadRoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeadRoomId");
+
+                    b.ToTable("LeadRoomRequirements", (string)null);
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.Quotation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ApprovedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ClonedFromQuotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("DiscountPercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("GstAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("GstRatePercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("InstallationCharges")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LeadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PreparedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("SharedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("SharedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxableValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("TransportCharges")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("LeadId", "Stage")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Quotations_LeadId_Stage_Current")
+                        .HasFilter("[IsCurrent] = 1");
+
+                    b.HasIndex("LeadId", "Stage", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("Quotations", (string)null);
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationCatalogEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("BasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CategoryKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ItemKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int>("PricingType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoomKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitOfMeasure")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("VariantKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("VariantName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomKey", "CategoryKey");
+
+                    b.HasIndex("RoomKey", "CategoryKey", "ItemKey", "VariantKey")
+                        .IsUnique();
+
+                    b.ToTable("QuotationCatalogEntries", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("ec4f75b5-a3b7-216a-03dd-169088351ecb"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "base-units",
+                            ItemName = "Base Units",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("54a33f97-e744-65f6-9f16-9d83900b66b3"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wall-units",
+                            ItemName = "Wall Units",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "wooden",
+                            VariantName = "Wooden"
+                        },
+                        new
+                        {
+                            Id = new Guid("56241518-5690-f55e-eede-d4298bdada13"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wall-units",
+                            ItemName = "Wall Units",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "glass",
+                            VariantName = "Glass"
+                        },
+                        new
+                        {
+                            Id = new Guid("8622bcbe-b62b-9825-cdb6-ab4dadf8330d"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "loft",
+                            ItemName = "Loft",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 3,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("7afc6fc9-132c-ac4b-9b2c-aab07ea5addc"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tall-unit",
+                            ItemName = "Tall Unit",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 4,
+                            UnitOfMeasure = 1,
+                            VariantKey = "pantry",
+                            VariantName = "Pantry"
+                        },
+                        new
+                        {
+                            Id = new Guid("d552ec0b-c683-f55e-3bb5-d8c2b158b8e9"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tall-unit",
+                            ItemName = "Tall Unit",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 5,
+                            UnitOfMeasure = 1,
+                            VariantKey = "appliance",
+                            VariantName = "Appliance"
+                        },
+                        new
+                        {
+                            Id = new Guid("8ef4477b-108c-93c9-bed3-d6b95ea8013f"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "breakfast-counter",
+                            ItemName = "Breakfast Counter",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 6,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("d36e3ada-7a25-4434-38f0-1ec34d737b60"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "rolling-shutter-unit",
+                            ItemName = "Rolling Shutter Unit",
+                            PricingType = 1,
+                            RoomKey = "kitchen",
+                            SortOrder = 7,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("22ca38db-31ce-a32c-4356-276a47c4bde0"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "openable",
+                            VariantName = "Openable"
+                        },
+                        new
+                        {
+                            Id = new Guid("34897107-6d2d-10b7-e160-bd203ce54d75"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "sliding",
+                            VariantName = "Sliding"
+                        },
+                        new
+                        {
+                            Id = new Guid("33cdfa99-f24b-dccf-2c74-ebe72286bb36"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "loft-storage",
+                            ItemName = "Loft Storage",
+                            PricingType = 1,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("06899d2c-932f-b3ed-f30c-22012cf5abda"),
+                            BasePrice = 42000m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "bed-unit",
+                            ItemName = "Bed Unit",
+                            PricingType = 2,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 3,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("17d2cd6d-77d7-961a-59e6-46b000669757"),
+                            BasePrice = 8500m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "side-table",
+                            ItemName = "Side Table",
+                            PricingType = 2,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 4,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("55c14338-999a-8091-2f35-4713f13b982f"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "dresser",
+                            ItemName = "Dresser Unit",
+                            PricingType = 1,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 5,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("ac40642d-9d0e-76a8-324a-8593f6b640ed"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "study-table",
+                            ItemName = "Study Table",
+                            PricingType = 1,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 6,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("d5325fd7-d90b-abd9-ba7b-8c28fdc1de6b"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tv-unit",
+                            ItemName = "TV Unit",
+                            PricingType = 1,
+                            RoomKey = "master-bedroom",
+                            SortOrder = 7,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("5deff5ec-d3ee-13d6-1672-4d64a9eb5cd9"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "bedroom",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "openable",
+                            VariantName = "Openable"
+                        },
+                        new
+                        {
+                            Id = new Guid("922457de-12cc-23db-a8fb-67451859c503"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "bedroom",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "sliding",
+                            VariantName = "Sliding"
+                        },
+                        new
+                        {
+                            Id = new Guid("c745de52-4357-32ab-2411-45d7930851a4"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "loft-storage",
+                            ItemName = "Loft Storage",
+                            PricingType = 1,
+                            RoomKey = "bedroom",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("f40782a2-03df-08cc-64cf-f795b8da0a43"),
+                            BasePrice = 42000m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "bed-unit",
+                            ItemName = "Bed Unit",
+                            PricingType = 2,
+                            RoomKey = "bedroom",
+                            SortOrder = 3,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("60e486f2-470e-0d43-5940-3415fa30f009"),
+                            BasePrice = 8500m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "side-table",
+                            ItemName = "Side Table",
+                            PricingType = 2,
+                            RoomKey = "bedroom",
+                            SortOrder = 4,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("36de33d1-4bb5-a59e-83fc-a7e387c91939"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "dresser",
+                            ItemName = "Dresser Unit",
+                            PricingType = 1,
+                            RoomKey = "bedroom",
+                            SortOrder = 5,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("3f648144-247f-d771-fb18-687228688a4a"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "study-table",
+                            ItemName = "Study Table",
+                            PricingType = 1,
+                            RoomKey = "bedroom",
+                            SortOrder = 6,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("d32a9f7e-443c-03e6-fc51-8da6da9a23cb"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tv-unit",
+                            ItemName = "TV Unit",
+                            PricingType = 1,
+                            RoomKey = "bedroom",
+                            SortOrder = 7,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("361ba840-afeb-141b-2b1b-721e261c2743"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "openable",
+                            VariantName = "Openable"
+                        },
+                        new
+                        {
+                            Id = new Guid("46d782f6-e37b-45bd-d741-c1defaf5c3e4"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "sliding",
+                            VariantName = "Sliding"
+                        },
+                        new
+                        {
+                            Id = new Guid("44783469-99db-ce91-8b9f-3384dc1d9ea2"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "loft-storage",
+                            ItemName = "Loft Storage",
+                            PricingType = 1,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("aa3d16d7-0659-ed27-87e8-442b466abe54"),
+                            BasePrice = 42000m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "bed-unit",
+                            ItemName = "Bed Unit",
+                            PricingType = 2,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 3,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("f43afed5-822e-0be3-5389-e87336c8918f"),
+                            BasePrice = 8500m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "side-table",
+                            ItemName = "Side Table",
+                            PricingType = 2,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 4,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("a95ada24-25e1-5ee7-3d81-0aa976d15a80"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "dresser",
+                            ItemName = "Dresser Unit",
+                            PricingType = 1,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 5,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("b5a8a7f2-b04b-ea3e-18af-80bd16dfbccd"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "study-table",
+                            ItemName = "Study Table",
+                            PricingType = 1,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 6,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("143e910d-cd88-7362-a677-2d42a60e333c"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tv-unit",
+                            ItemName = "TV Unit",
+                            PricingType = 1,
+                            RoomKey = "kids-bedroom",
+                            SortOrder = 7,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("034b2d53-803c-5256-11c2-76d5a69834ba"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "openable",
+                            VariantName = "Openable"
+                        },
+                        new
+                        {
+                            Id = new Guid("92b7842e-c902-956a-8b9d-de07c805dedd"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            ItemName = "Wardrobe",
+                            PricingType = 1,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "sliding",
+                            VariantName = "Sliding"
+                        },
+                        new
+                        {
+                            Id = new Guid("966e815d-176e-afe5-8289-a59f6bfe4f17"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "loft-storage",
+                            ItemName = "Loft Storage",
+                            PricingType = 1,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("2d81bc4c-c4d2-3bd7-c042-fe55398d109e"),
+                            BasePrice = 42000m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "bed-unit",
+                            ItemName = "Bed Unit",
+                            PricingType = 2,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 3,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("a2164309-8c53-4aac-0e2c-c724b0bca052"),
+                            BasePrice = 8500m,
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "side-table",
+                            ItemName = "Side Table",
+                            PricingType = 2,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 4,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("6a6e87af-fe4f-7763-d84c-8058582fb6be"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "dresser",
+                            ItemName = "Dresser Unit",
+                            PricingType = 1,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 5,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("fd9c9c00-5407-459b-eda9-a83f237019e8"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "study-table",
+                            ItemName = "Study Table",
+                            PricingType = 1,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 6,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("84d4bc6f-fac7-8785-14d0-43bafaecab62"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tv-unit",
+                            ItemName = "TV Unit",
+                            PricingType = 1,
+                            RoomKey = "guest-bedroom",
+                            SortOrder = 7,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("cadde96c-7ff5-9a1b-92c0-f1b1323a8b86"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "tv-unit",
+                            ItemName = "TV Unit",
+                            PricingType = 1,
+                            RoomKey = "living-room",
+                            SortOrder = 0,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("5a176187-d164-dc4e-aee3-6e5659504170"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "crockery-unit",
+                            ItemName = "Crockery Unit",
+                            PricingType = 1,
+                            RoomKey = "living-room",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("14c1546f-3a5f-9563-a02c-0ca05d57f026"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "shoe-rack",
+                            ItemName = "Shoe Rack",
+                            PricingType = 1,
+                            RoomKey = "living-room",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("3a38fb1f-5b7d-13c5-cd8e-389d6c8f591d"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "display-unit",
+                            ItemName = "Display Unit",
+                            PricingType = 1,
+                            RoomKey = "living-room",
+                            SortOrder = 3,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("e27b311a-3b79-0010-5537-3de5019b9e7e"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "crockery-unit",
+                            ItemName = "Crockery Unit",
+                            PricingType = 1,
+                            RoomKey = "dining-room",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("0cb883a3-5cd3-a0e9-a8f1-65f6af7764a2"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "dining-storage",
+                            ItemName = "Dining Storage",
+                            PricingType = 1,
+                            RoomKey = "dining-room",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("7579bff1-00f9-2a92-d58d-6315205975f4"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "pooja-unit",
+                            ItemName = "Pooja Unit",
+                            PricingType = 1,
+                            RoomKey = "pooja-room",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("c97585b5-a823-b633-a384-7a491a9b2f36"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "study-table",
+                            ItemName = "Study Table",
+                            PricingType = 1,
+                            RoomKey = "study-room",
+                            SortOrder = 0,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("018dc07f-1799-7879-4793-9851b481329b"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "bookshelf",
+                            ItemName = "Bookshelf",
+                            PricingType = 1,
+                            RoomKey = "study-room",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("ed790b1d-b05f-e6a4-6360-09fd6a1a4feb"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "utility-storage",
+                            ItemName = "Utility Storage",
+                            PricingType = 1,
+                            RoomKey = "utility",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("8c8abf07-69c4-bc92-dbfb-0a610aa2d4c9"),
+                            CategoryKey = "modular",
+                            CategoryName = "Modular",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "shoe-rack",
+                            ItemName = "Shoe Rack",
+                            PricingType = 1,
+                            RoomKey = "foyer",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("06120d67-27dd-d884-3f07-a1ae95e2467c"),
+                            CategoryKey = "custom-work",
+                            CategoryName = "Custom work",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "floating-shelf",
+                            ItemName = "Floating Shelf",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 0,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("4a47a2e7-8365-eaae-6545-ed2e7eae168b"),
+                            CategoryKey = "custom-work",
+                            CategoryName = "Custom work",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "rafters",
+                            ItemName = "Rafters",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 1,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("d7ae821e-a222-3889-5c63-b8d4a26a9d73"),
+                            CategoryKey = "custom-work",
+                            CategoryName = "Custom work",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "ms-rods",
+                            ItemName = "MS Rods",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 2,
+                            UnitOfMeasure = 2,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("4b3f7dbd-bdcf-4c8c-b410-3fa59546010d"),
+                            CategoryKey = "custom-work",
+                            CategoryName = "Custom work",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "jali-partition",
+                            ItemName = "Jali / Partition",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 3,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("1e906300-3f3e-a9b2-c0bb-424c5b944e42"),
+                            CategoryKey = "custom-work",
+                            CategoryName = "Custom work",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wall-panelling",
+                            ItemName = "Wall Panelling",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 4,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("ecb39d3c-735c-8e9b-e4cd-c4c9a31ec339"),
+                            BasePrice = 65000m,
+                            CategoryKey = "furniture",
+                            CategoryName = "Furniture",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "sofa",
+                            ItemName = "Sofa",
+                            PricingType = 2,
+                            RoomKey = "",
+                            SortOrder = 0,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("0e418c62-218a-a292-b444-62b78d1e2ddd"),
+                            BasePrice = 18000m,
+                            CategoryKey = "furniture",
+                            CategoryName = "Furniture",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "coffee-table",
+                            ItemName = "Coffee Table",
+                            PricingType = 2,
+                            RoomKey = "",
+                            SortOrder = 1,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("a7085957-424d-dc6a-9066-29ec103a9e9f"),
+                            BasePrice = 22000m,
+                            CategoryKey = "furniture",
+                            CategoryName = "Furniture",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "console-table",
+                            ItemName = "Console Table",
+                            PricingType = 2,
+                            RoomKey = "",
+                            SortOrder = 2,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("12458a69-e70e-a077-80b5-8c569cae3b4f"),
+                            BasePrice = 48000m,
+                            CategoryKey = "furniture",
+                            CategoryName = "Furniture",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "dining-table",
+                            ItemName = "Dining Table",
+                            PricingType = 2,
+                            RoomKey = "",
+                            SortOrder = 3,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("30ef2e87-7363-f124-8354-496d9ffe3a62"),
+                            CategoryKey = "furnishings",
+                            CategoryName = "Furnishings",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "curtains",
+                            ItemName = "Curtains",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("9c10712c-989d-ddc5-2eaa-36c92c60440e"),
+                            CategoryKey = "furnishings",
+                            CategoryName = "Furnishings",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "blinds",
+                            ItemName = "Blinds",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("0903ca1a-8b3e-b72c-03a6-660d9756910a"),
+                            CategoryKey = "furnishings",
+                            CategoryName = "Furnishings",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "wallpaper",
+                            ItemName = "Wallpaper",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("7d0546f0-d49f-654b-92f0-60399eb8daa1"),
+                            CategoryKey = "services",
+                            CategoryName = "Services",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "false-ceiling",
+                            ItemName = "False Ceiling",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 0,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("749fac03-9209-88e8-47f9-726c636103d9"),
+                            CategoryKey = "services",
+                            CategoryName = "Services",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "flooring",
+                            ItemName = "Flooring",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 1,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("b3fd8f3a-1bee-8715-2568-8dfd5b447285"),
+                            CategoryKey = "services",
+                            CategoryName = "Services",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "painting",
+                            ItemName = "Painting",
+                            PricingType = 1,
+                            RoomKey = "",
+                            SortOrder = 2,
+                            UnitOfMeasure = 1,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("d772af2a-5c7d-43a1-c06a-75f067322f35"),
+                            CategoryKey = "services",
+                            CategoryName = "Services",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "electrical",
+                            ItemName = "Electrical Work",
+                            PricingType = 3,
+                            RoomKey = "",
+                            SortOrder = 3,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("ec698ada-87ff-2805-001d-4ddaf7c585f8"),
+                            CategoryKey = "services",
+                            CategoryName = "Services",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            ItemKey = "plumbing",
+                            ItemName = "Plumbing Work",
+                            PricingType = 3,
+                            RoomKey = "",
+                            SortOrder = 4,
+                            UnitOfMeasure = 4,
+                            VariantKey = "",
+                            VariantName = ""
+                        });
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BlobUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset>("GeneratedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("GeneratedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsSent")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("QuotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("SizeInBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuotationId");
+
+                    b.ToTable("QuotationDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationLineItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AccessoryAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BillableQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("CarcassMaterial")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CategoryKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("DepthFeet")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Finish")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("HardwareAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("HeightFeet")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("InternalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRateOverridden")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ItemKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("PricingType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("QuotationRoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ShutterMaterial")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitOfMeasure")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("VariantKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("WidthFeet")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuotationRoomId");
+
+                    b.ToTable("QuotationLineItems", (string)null);
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CarcassMaterial")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Finish")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ItemKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("RatePerUnit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ShutterMaterial")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("UnitOfMeasure")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("VariantKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemKey");
+
+                    b.HasIndex("ItemKey", "VariantKey", "CarcassMaterial", "ShutterMaterial", "Finish", "EffectiveFrom")
+                        .IsUnique()
+                        .HasDatabaseName("IX_QuotationRates_Specification");
+
+                    b.ToTable("QuotationRates", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("57a75156-a75e-bd88-d33d-024027456c7e"),
+                            CarcassMaterial = "BWP",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "Acrylic",
+                            IsActive = true,
+                            ItemKey = "base-units",
+                            RatePerUnit = 4200m,
+                            ShutterMaterial = "HDHMR",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("2069b4dc-8e26-d3e5-b145-7d81b717a9e6"),
+                            CarcassMaterial = "BWP",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "Acrylic",
+                            IsActive = true,
+                            ItemKey = "wall-units",
+                            RatePerUnit = 3600m,
+                            ShutterMaterial = "HDHMR",
+                            UnitOfMeasure = 1,
+                            VariantKey = "wooden"
+                        },
+                        new
+                        {
+                            Id = new Guid("a1ee74b0-7711-b449-aa7f-768cea50e2c8"),
+                            CarcassMaterial = "BWP",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "Glass",
+                            IsActive = true,
+                            ItemKey = "wall-units",
+                            RatePerUnit = 3800m,
+                            ShutterMaterial = "Profile",
+                            UnitOfMeasure = 1,
+                            VariantKey = "glass"
+                        },
+                        new
+                        {
+                            Id = new Guid("3df61d4e-92d0-2908-1f04-4f2ab63f9b22"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "base-units",
+                            RatePerUnit = 3800m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("63858fb0-ae6b-4fbb-16d8-05c54da5a105"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "wall-units",
+                            RatePerUnit = 3200m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = "wooden"
+                        },
+                        new
+                        {
+                            Id = new Guid("92a5cdc8-65cb-de09-4d07-a0c62b8793ca"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "wall-units",
+                            RatePerUnit = 3400m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = "glass"
+                        },
+                        new
+                        {
+                            Id = new Guid("2cb4e615-90cd-e74d-7691-f83918fbb31a"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "loft",
+                            RatePerUnit = 2400m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("da00908b-0152-62a9-cab5-19686f1d7762"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "tall-unit",
+                            RatePerUnit = 3600m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = "pantry"
+                        },
+                        new
+                        {
+                            Id = new Guid("b684da8b-af3f-0930-d65a-b86e97343af8"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "tall-unit",
+                            RatePerUnit = 3900m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = "appliance"
+                        },
+                        new
+                        {
+                            Id = new Guid("51a63c00-cab8-6fe5-f7f1-3404fe9b87b3"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "rolling-shutter-unit",
+                            RatePerUnit = 4100m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("a96f91e9-a77f-2392-3fb3-0e7e20dd99cb"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "breakfast-counter",
+                            RatePerUnit = 2800m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 2,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("0a43ced1-d4a1-5514-5b0c-73fa031e3176"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            RatePerUnit = 1850m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = "openable"
+                        },
+                        new
+                        {
+                            Id = new Guid("e84b7f95-fa20-a61c-e2f6-c5ddcc375eb5"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "wardrobe",
+                            RatePerUnit = 2150m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = "sliding"
+                        },
+                        new
+                        {
+                            Id = new Guid("dc60cb07-d05e-2bc9-43de-a0804f39d668"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "loft-storage",
+                            RatePerUnit = 1500m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("11b260d3-2c52-87f4-5321-8163421316ba"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "dresser",
+                            RatePerUnit = 1900m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("6057afbf-feb6-8ab8-a818-1ec7e95caf77"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "study-table",
+                            RatePerUnit = 2600m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 2,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("9e830e1e-e44c-6094-8dcd-7e33e1c27bfc"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "tv-unit",
+                            RatePerUnit = 2400m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 2,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("6f9ad67f-03de-62a2-a6be-006fe4d0edb6"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "crockery-unit",
+                            RatePerUnit = 1950m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("50b0df2a-2c57-0588-055d-7f4a83a2b621"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "display-unit",
+                            RatePerUnit = 1800m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("8d378ed8-d938-cdbb-f743-2deab5d25104"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "shoe-rack",
+                            RatePerUnit = 1600m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("4af4b50c-53f9-0d32-2e89-66e53defeb02"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "bookshelf",
+                            RatePerUnit = 1700m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("8a4f5987-ebd3-26f2-fe44-0b787a908443"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "pooja-unit",
+                            RatePerUnit = 2600m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("f83c889a-01d9-e4bb-0ecd-b705fc4ccdfe"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "dining-storage",
+                            RatePerUnit = 1900m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("7c7dc121-2803-0f50-590f-4bada033025a"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "utility-storage",
+                            RatePerUnit = 1450m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("98f973c8-e209-70c0-46e1-605d98593fff"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "floating-shelf",
+                            RatePerUnit = 1200m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 2,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("c48dffd7-4938-ae82-e81d-e8917e93a376"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "rafters",
+                            RatePerUnit = 950m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 2,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("63e8ca8d-4725-1f5a-d280-6e788de7a9ca"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "ms-rods",
+                            RatePerUnit = 600m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 2,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("e4e8451b-b1d7-9c37-0c8f-48a799164eb0"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "jali-partition",
+                            RatePerUnit = 1400m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("dd98ac50-3071-a054-8878-60a8822decae"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "wall-panelling",
+                            RatePerUnit = 1100m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("fabaa00d-555e-d02c-09c5-05f49a21338c"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "curtains",
+                            RatePerUnit = 450m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("a170f3fa-1800-8d45-0360-1311ce66ace5"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "blinds",
+                            RatePerUnit = 380m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("7bedd7f4-a36c-7a3a-bcff-76f109f68e4a"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "wallpaper",
+                            RatePerUnit = 120m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("50cbfd48-70e4-c297-e525-af90929e2865"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "false-ceiling",
+                            RatePerUnit = 220m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("766c30b8-be5c-596c-10db-94a0f318ffc7"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "flooring",
+                            RatePerUnit = 180m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        },
+                        new
+                        {
+                            Id = new Guid("7f583bea-6d0a-06e9-dc07-18746126a4e3"),
+                            CarcassMaterial = "",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            EffectiveFrom = new DateOnly(2026, 1, 1),
+                            Finish = "",
+                            IsActive = true,
+                            ItemKey = "painting",
+                            RatePerUnit = 45m,
+                            ShutterMaterial = "",
+                            UnitOfMeasure = 1,
+                            VariantKey = ""
+                        });
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationRoom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DefaultCarcassMaterial")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DefaultFinish")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DefaultShutterMaterial")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("QuotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RoomKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RoomName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("RoomTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SourceLeadRoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuotationId");
+
+                    b.ToTable("QuotationRooms", (string)null);
                 });
 
             modelBuilder.Entity("IBS.Modules.UsersAccess.Domain.Entities.ActivationToken", b =>
@@ -947,10 +3251,20 @@ namespace IBS.Infrastructure.Persistence.Migrations
                             Id = new Guid("9e5b0000-0000-4000-8000-000000000005"),
                             Code = "manage_quotations",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Description = "Prepare, revise and issue quotations.",
+                            Description = "Build and revise quotation drafts, and generate their PDFs.",
                             GroupName = "Sales pipeline",
                             Name = "Can manage quotations",
                             SortOrder = 5
+                        },
+                        new
+                        {
+                            Id = new Guid("9e5b0000-0000-4000-8000-000000000022"),
+                            Code = "approve_quotations",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Email a quotation to the client and record their approval or rejection.",
+                            GroupName = "Sales pipeline",
+                            Name = "Can issue and approve quotations",
+                            SortOrder = 22
                         },
                         new
                         {
@@ -961,6 +3275,16 @@ namespace IBS.Infrastructure.Persistence.Migrations
                             GroupName = "Sales pipeline",
                             Name = "Can manage leads",
                             SortOrder = 20
+                        },
+                        new
+                        {
+                            Id = new Guid("9e5b0000-0000-4000-8000-000000000021"),
+                            Code = "manage_own_leads",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "View and edit only the leads assigned to them. Cannot reassign or delete a lead.",
+                            GroupName = "Sales pipeline",
+                            Name = "Can manage own leads",
+                            SortOrder = 21
                         },
                         new
                         {
@@ -1104,6 +3428,72 @@ namespace IBS.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.LeadRoom", b =>
+                {
+                    b.HasOne("IBS.Modules.Sales.Domain.Entities.Lead", "Lead")
+                        .WithMany("Rooms")
+                        .HasForeignKey("LeadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lead");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.LeadRoomRequirement", b =>
+                {
+                    b.HasOne("IBS.Modules.Sales.Domain.Entities.LeadRoom", "Room")
+                        .WithMany("Requirements")
+                        .HasForeignKey("LeadRoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.Quotation", b =>
+                {
+                    b.HasOne("IBS.Modules.Sales.Domain.Entities.Lead", "Lead")
+                        .WithMany()
+                        .HasForeignKey("LeadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lead");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationDocument", b =>
+                {
+                    b.HasOne("IBS.Modules.Sales.Domain.Entities.Quotation", "Quotation")
+                        .WithMany("Documents")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quotation");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationLineItem", b =>
+                {
+                    b.HasOne("IBS.Modules.Sales.Domain.Entities.QuotationRoom", "Room")
+                        .WithMany("LineItems")
+                        .HasForeignKey("QuotationRoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationRoom", b =>
+                {
+                    b.HasOne("IBS.Modules.Sales.Domain.Entities.Quotation", "Quotation")
+                        .WithMany("Rooms")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quotation");
+                });
+
             modelBuilder.Entity("IBS.Modules.UsersAccess.Domain.Entities.ActivationToken", b =>
                 {
                     b.HasOne("IBS.Modules.UsersAccess.Domain.Entities.Employee", "Employee")
@@ -1227,6 +3617,28 @@ namespace IBS.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.Lead", b =>
+                {
+                    b.Navigation("Rooms");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.LeadRoom", b =>
+                {
+                    b.Navigation("Requirements");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.Quotation", b =>
+                {
+                    b.Navigation("Documents");
+
+                    b.Navigation("Rooms");
+                });
+
+            modelBuilder.Entity("IBS.Modules.Sales.Domain.Entities.QuotationRoom", b =>
+                {
+                    b.Navigation("LineItems");
                 });
 
             modelBuilder.Entity("IBS.Modules.UsersAccess.Domain.Entities.Branch", b =>

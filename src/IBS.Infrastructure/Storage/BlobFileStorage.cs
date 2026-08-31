@@ -1,7 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
-using IBS.Modules.UsersAccess.Application.Abstractions;
+using IBS.SharedKernel.Storage;
 using Microsoft.Extensions.Options;
 
 namespace IBS.Infrastructure.Storage;
@@ -61,5 +61,18 @@ public sealed class BlobFileStorage(IOptions<StorageOptions> options) : IFileSto
 
         _ = ct;
         return Task.FromResult(blob.GenerateSasUri(builder).ToString());
+    }
+
+    public async Task<Stream?> OpenReadAsync(string blobUrl, CancellationToken ct = default)
+    {
+        var reference = new BlobClient(new Uri(blobUrl));
+        var blob = _client.GetBlobContainerClient(reference.BlobContainerName).GetBlobClient(reference.Name);
+
+        if (!await blob.ExistsAsync(ct))
+        {
+            return null;
+        }
+
+        return await blob.OpenReadAsync(cancellationToken: ct);
     }
 }

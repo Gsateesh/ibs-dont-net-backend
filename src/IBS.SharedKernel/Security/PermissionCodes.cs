@@ -1,7 +1,7 @@
 namespace IBS.SharedKernel.Security;
 
 /// <summary>
-/// The 20 permission codes seeded by migration (spec section 4.4). Referenced by every module
+/// The 22 permission codes seeded by migration (spec section 4.4). Referenced by every module
 /// so a typo becomes a compile error rather than a silently-failing permission check.
 /// A new permission is only ever added here together with the migration that seeds it.
 /// </summary>
@@ -15,7 +15,21 @@ public static class PermissionCodes
     // Sales pipeline
     public const string ManageCustomerOnboarding = "manage_customer_onboarding";
     public const string ManageQuotations = "manage_quotations";
+
+    /// <summary>
+    /// Issues a quotation: sends it to the client and records their acceptance. Separate from
+    /// <see cref="ManageQuotations"/>, which only builds and revises drafts - the studio wants a
+    /// second pair of eyes on a price before it leaves the building.
+    /// </summary>
+    public const string ApproveQuotations = "approve_quotations";
+
     public const string ManageLeads = "manage_leads";
+
+    /// <summary>
+    /// Sees and edits only the leads assigned to the holder. A strict subset of
+    /// <see cref="ManageLeads"/>, which supersedes it - nobody needs both.
+    /// </summary>
+    public const string ManageOwnLeads = "manage_own_leads";
 
     // Design and estimation
     public const string ManageDesigns = "manage_designs";
@@ -56,7 +70,7 @@ public static class PermissionCodes
     public static readonly IReadOnlyList<string> All =
     [
         ManageUsers, ManagePermissions, ViewSensitiveData,
-        ManageCustomerOnboarding, ManageQuotations, ManageLeads,
+        ManageCustomerOnboarding, ManageQuotations, ApproveQuotations, ManageLeads, ManageOwnLeads,
         ManageDesigns, ManageBoq,
         ManageProjects, ManageTasks, ManageSiteProgress,
         ManageProcurement, ManageInventory, ManageVendors,

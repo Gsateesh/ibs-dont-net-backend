@@ -14,6 +14,8 @@ public interface ISalesDbContext
 
     DbSet<LeadRoom> LeadRooms { get; }
 
+    DbSet<LeadFloorPlanImage> LeadFloorPlanImages { get; }
+
     DbSet<LeadRoomRequirement> LeadRoomRequirements { get; }
 
     DbSet<Quotation> Quotations { get; }

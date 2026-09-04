@@ -115,30 +115,33 @@ public sealed class LeadsController(ILeadService leads, ICurrentUser currentUser
     public async Task<ActionResult<BulkAssignResult>> BulkAssign(BulkAssignLeadsRequest request, CancellationToken ct) =>
         Ok(await leads.BulkAssignAsync(request, currentUser.RequireEmployeeId(), ct));
 
-    /// <summary>Returns the lead's floor plan image.</summary>
+    /// <summary>Returns one of the lead's floor plan images.</summary>
     /// <remarks>
     /// Streamed through the API rather than served from a storage URL, so the image is exactly
     /// as visible as the lead itself: an owner can fetch the plan of a lead assigned to them and
     /// gets a 404 for anyone else's.
     /// </remarks>
+    /// <param name="id">Lead id.</param>
+    /// <param name="imageId">Which image, from the lead's FloorPlans list.</param>
+    /// <param name="ct">Cancellation token.</param>
     /// <response code="200">The image bytes.</response>
-    /// <response code="404">No such lead, it is not visible to you, or it has no floor plan.</response>
+    /// <response code="404">No such lead or image, or it is not visible to you.</response>
     // Deliberately no [Produces] listing the image types: it would also constrain the
     // ProblemDetails this action returns on a miss, which is JSON.
-    [HttpGet("{id:guid}/floor-plan")]
+    [HttpGet("{id:guid}/floor-plans/{imageId:guid}")]
     [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetFloorPlan(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetFloorPlan(Guid id, Guid imageId, CancellationToken ct)
     {
-        var plan = await leads.OpenFloorPlanAsync(id, currentUser.RequireEmployeeId(), ct);
+        var plan = await leads.OpenFloorPlanAsync(id, imageId, currentUser.RequireEmployeeId(), ct);
 
         if (plan is null)
         {
             return NotFound(new ProblemDetails
             {
                 Title = "No floor plan",
-                Detail = "This lead has no floor plan on file."
+                Detail = "This lead has no such floor plan image."
             });
         }
 
@@ -146,44 +149,58 @@ public sealed class LeadsController(ILeadService leads, ICurrentUser currentUser
         return File(plan.Content, plan.ContentType, enableRangeProcessing: true);
     }
 
-    /// <summary>Uploads a floor plan, replacing any image already on file.</summary>
+    /// <summary>Adds one or more floor plan images to the lead.</summary>
+    /// <remarks>
+    /// Appends rather than replaces. Several files may be sent in one request; each is
+    /// validated on its own, and the first one that fails takes the whole request with it, so
+    /// a partial upload never leaves the caller guessing which images landed.
+    /// </remarks>
     /// <param name="id">Lead id.</param>
-    /// <param name="file">A PNG, JPEG, WebP or GIF image.</param>
+    /// <param name="files">One or more PNG, JPEG, WebP or GIF images.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <response code="200">The updated lead.</response>
-    /// <response code="400">No file was supplied, or it is not an accepted image type.</response>
+    /// <response code="200">The updated lead, with every image now on file.</response>
+    /// <response code="400">No file was supplied, or one is not an accepted image type.</response>
     /// <response code="404">No such lead.</response>
-    [HttpPost("{id:guid}/floor-plan")]
+    [HttpPost("{id:guid}/floor-plans")]
     [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestSizeLimit(50 * 1024 * 1024)]
     [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LeadDetailResponse>> UploadFloorPlan(Guid id, IFormFile file, CancellationToken ct)
+    public async Task<ActionResult<LeadDetailResponse>> UploadFloorPlans(
+        Guid id, [FromForm] IFormFileCollection files, CancellationToken ct)
     {
-        if (file is null || file.Length == 0)
+        if (files is null || files.Count == 0 || files.All(f => f.Length == 0))
         {
-            return BadRequest(new ProblemDetails { Title = "No file", Detail = "Attach an image to upload." });
+            return BadRequest(new ProblemDetails { Title = "No file", Detail = "Attach at least one image to upload." });
         }
 
-        await using var stream = file.OpenReadStream();
+        LeadDetailResponse? lead = null;
 
-        return Ok(await leads.UploadFloorPlanAsync(
-            id, file.FileName, file.ContentType, stream, currentUser.RequireEmployeeId(), ct));
+        // One call per file, in the order they were picked: the service assigns each image its
+        // sort order from what is already on the lead, so uploading them together and
+        // uploading them one at a time end up identical.
+        foreach (var file in files.Where(f => f.Length > 0))
+        {
+            await using var stream = file.OpenReadStream();
+
+            lead = await leads.UploadFloorPlanAsync(
+                id, file.FileName, file.ContentType, stream, currentUser.RequireEmployeeId(), ct);
+        }
+
+        return Ok(lead);
     }
 
-    /// <summary>Removes the lead's floor plan, from both the database and storage.</summary>
+    /// <summary>Removes one floor plan image, from both the database and storage.</summary>
     /// <response code="200">The updated lead.</response>
-    /// <response code="400">The lead had no floor plan to begin with.</response>
-    /// <response code="404">No such lead.</response>
-    [HttpDelete("{id:guid}/floor-plan")]
+    /// <response code="404">No such lead or image.</response>
+    [HttpDelete("{id:guid}/floor-plans/{imageId:guid}")]
     [RequiresPermission(PermissionCodes.ManageLeads, PermissionCodes.ManageOwnLeads)]
     [ProducesResponseType<LeadDetailResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LeadDetailResponse>> DeleteFloorPlan(Guid id, CancellationToken ct) =>
-        Ok(await leads.DeleteFloorPlanAsync(id, currentUser.RequireEmployeeId(), ct));
+    public async Task<ActionResult<LeadDetailResponse>> DeleteFloorPlan(Guid id, Guid imageId, CancellationToken ct) =>
+        Ok(await leads.DeleteFloorPlanAsync(id, imageId, currentUser.RequireEmployeeId(), ct));
 
     /// <summary>Lead counts per phase, for the quick-filter chips above the Leads list.</summary>
     /// <remarks>Scoped the same way the list is: an owner is counted only their own leads.</remarks>

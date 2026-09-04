@@ -86,9 +86,14 @@ public sealed class QuotationPdfDocument(
                     right.Item().Text("Property").FontSize(8).FontColor(Colors.Grey.Darken1);
                     right.Item().Text(lead.PropertyName).SemiBold();
 
-                    if (!string.IsNullOrWhiteSpace(lead.PropertyAddress))
+                    // The address as one line, skipping whichever parts were left blank.
+                    var address = string.Join(", ", new[]
+                        { lead.AddressLine1, lead.AddressLine2, lead.City, lead.State, lead.PinCode }
+                        .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+                    if (!string.IsNullOrWhiteSpace(address))
                     {
-                        right.Item().Text(lead.PropertyAddress).FontColor(Colors.Grey.Darken2);
+                        right.Item().Text(address).FontColor(Colors.Grey.Darken2);
                     }
                 });
             });

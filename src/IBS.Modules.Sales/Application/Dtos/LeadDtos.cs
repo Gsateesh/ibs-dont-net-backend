@@ -16,9 +16,24 @@ public sealed class LeadListItemResponse
 
     public string PropertyName { get; set; } = string.Empty;
 
-    public string PropertyAddress { get; set; } = string.Empty;
+    public string AddressLine1 { get; set; } = string.Empty;
+
+    public string? AddressLine2 { get; set; }
+
+    public string? City { get; set; }
+
+    public string? PinCode { get; set; }
+
+    public string? State { get; set; }
 
     public PropertyType PropertyType { get; set; }
+
+    /// <summary>With <see cref="PropertySize"/>, the second line of the property cell: "3BHK - 2500 sft".</summary>
+    public PropertyConfiguration? PropertyConfiguration { get; set; }
+
+    public decimal? PropertySize { get; set; }
+
+    public PropertySizeUnit? PropertySizeUnit { get; set; }
 
     public decimal? BudgetMin { get; set; }
 
@@ -26,7 +41,12 @@ public sealed class LeadListItemResponse
 
     public LeadPhase Phase { get; set; }
 
-    public LeadOverallStatus OverallStatus { get; set; }
+    /// <summary>
+    /// Grand total of the newest version of this lead's initial quotation, null when none has
+    /// been built. The figure the studio is actually chasing, so it belongs on the list rather
+    /// than a click away.
+    /// </summary>
+    public decimal? QuoteValue { get; set; }
 
     public bool IsInterested { get; set; }
 
@@ -58,7 +78,11 @@ public sealed class LeadDetailResponse
     public string? Notes { get; set; }
 
     public string PropertyName { get; set; } = string.Empty;
-    public string PropertyAddress { get; set; } = string.Empty;
+    public string AddressLine1 { get; set; } = string.Empty;
+    public string? AddressLine2 { get; set; }
+    public string? City { get; set; }
+    public string? PinCode { get; set; }
+    public string? State { get; set; }
     public PropertyType PropertyType { get; set; }
     public decimal? PropertySize { get; set; }
     public PropertySizeUnit? PropertySizeUnit { get; set; }
@@ -71,10 +95,9 @@ public sealed class LeadDetailResponse
     public DateOnly? NextFollowUpDate { get; set; }
     public DateOnly? QuotationSharedAt { get; set; }
     public bool IsInterested { get; set; }
-    public LeadOverallStatus OverallStatus { get; set; }
 
-    /// <summary>The floor plan on file, or null when none has been uploaded.</summary>
-    public LeadFloorPlanResponse? FloorPlan { get; set; }
+    /// <summary>Every floor plan image on file, in display order. Empty when none.</summary>
+    public IReadOnlyList<LeadFloorPlanResponse> FloorPlans { get; set; } = [];
 
     /// <summary>Requirements, room by room, in the order they were captured.</summary>
     public IReadOnlyList<LeadRoomResponse> Rooms { get; set; } = [];
@@ -109,6 +132,8 @@ public sealed class LeadDetailResponse
 /// </remarks>
 public sealed class LeadFloorPlanResponse
 {
+    public Guid Id { get; set; }
+
     /// <example>ground-floor.png</example>
     public string FileName { get; set; } = string.Empty;
 
@@ -213,8 +238,9 @@ public sealed class CreateLeadRequest
     [Required, MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    /// <summary>Optional: an enquiry often arrives with a first name and a number only.</summary>
+    [MaxLength(100)]
+    public string? LastName { get; set; }
 
     [Required, EmailAddress, MaxLength(256)]
     public string Email { get; set; } = string.Empty;
@@ -232,7 +258,20 @@ public sealed class CreateLeadRequest
     public string PropertyName { get; set; } = string.Empty;
 
     [Required, MaxLength(500)]
-    public string PropertyAddress { get; set; } = string.Empty;
+    public string AddressLine1 { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? AddressLine2 { get; set; }
+
+    /// <summary>Free text. The form offers the cities the studio has branches in, and accepts any other.</summary>
+    [MaxLength(100)]
+    public string? City { get; set; }
+
+    [MaxLength(12)]
+    public string? PinCode { get; set; }
+
+    [MaxLength(100)]
+    public string? State { get; set; }
 
     [Required]
     public PropertyType PropertyType { get; set; }
@@ -261,12 +300,10 @@ public sealed class CreateLeadRequest
     /// <summary>Stamped automatically when the phase first implies a quotation went out.</summary>
     public DateOnly? QuotationSharedAt { get; set; }
 
-    /// <summary>Optional at creation; a new lead starts at NewEnquiry when omitted.</summary>
-    public LeadPhase Phase { get; set; } = LeadPhase.NewEnquiry;
+    /// <summary>Optional at creation; a new lead starts at New client when omitted.</summary>
+    public LeadPhase Phase { get; set; } = LeadPhase.NewClient;
 
     public bool IsInterested { get; set; }
-
-    public LeadOverallStatus OverallStatus { get; set; } = LeadOverallStatus.Active;
 
     /// <summary>Requirements, room by room. The floor plan is uploaded separately.</summary>
     public List<LeadRoomRequest> Rooms { get; set; } = [];
@@ -288,8 +325,9 @@ public sealed class UpdateLeadRequest
     [Required, MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    /// <summary>Optional: an enquiry often arrives with a first name and a number only.</summary>
+    [MaxLength(100)]
+    public string? LastName { get; set; }
 
     [Required, EmailAddress, MaxLength(256)]
     public string Email { get; set; } = string.Empty;
@@ -307,7 +345,20 @@ public sealed class UpdateLeadRequest
     public string PropertyName { get; set; } = string.Empty;
 
     [Required, MaxLength(500)]
-    public string PropertyAddress { get; set; } = string.Empty;
+    public string AddressLine1 { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? AddressLine2 { get; set; }
+
+    /// <summary>Free text. The form offers the cities the studio has branches in, and accepts any other.</summary>
+    [MaxLength(100)]
+    public string? City { get; set; }
+
+    [MaxLength(12)]
+    public string? PinCode { get; set; }
+
+    [MaxLength(100)]
+    public string? State { get; set; }
 
     [Required]
     public PropertyType PropertyType { get; set; }
@@ -337,9 +388,6 @@ public sealed class UpdateLeadRequest
 
     public bool IsInterested { get; set; }
 
-    [Required]
-    public LeadOverallStatus OverallStatus { get; set; }
-
     /// <summary>
     /// The Requirements section as it should end up. Rooms and items are replaced wholesale:
     /// omitting a room deletes it, and an empty list clears the section.
@@ -351,23 +399,22 @@ public sealed class UpdateLeadRequest
 public sealed class LeadQuery
 {
     /// <summary>
-    /// Restrict to these phases. Repeat the parameter for several - the quick-filter chips
-    /// send a whole group at once (?phases=DesignInProgress&phases=DesignShared&...).
+    /// Restrict to these phases. Repeat the parameter for several, which is how the
+    /// quick-filter chips send more than one at a time.
     /// </summary>
     public List<LeadPhase>? Phases { get; set; }
 
     /// <summary>
-    /// Column to order by: name, property, budget, phase, overallStatus, interested,
-    /// assignee, nextFollowUp, or createdAt. Anything unrecognised falls back to createdAt.
+    /// Column to order by: name, property, budget, phase, quoteValue, interested, floorPlan,
+    /// assignee, nextFollowUp, or createdAt. Anything unrecognised - including nothing at all -
+    /// falls back to the follow-up worklist order the list opens on.
     /// </summary>
     public string? SortBy { get; set; }
 
-    /// <summary>Defaults to true, so the newest leads lead the list.</summary>
+    /// <summary>Only meaningful alongside <see cref="SortBy"/>; the default order is fixed.</summary>
     public bool SortDescending { get; set; } = true;
 
     public PropertyType? PropertyType { get; set; }
-
-    public LeadOverallStatus? OverallStatus { get; set; }
 
     /// <summary>
     /// Restrict to one assignee. Only effective for callers who hold manage_leads - for anyone

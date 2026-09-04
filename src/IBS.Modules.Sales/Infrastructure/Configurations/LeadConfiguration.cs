@@ -14,32 +14,26 @@ public sealed class LeadConfiguration : IEntityTypeConfiguration<Lead>
         builder.HasKey(l => l.Id);
 
         builder.Property(l => l.FirstName).HasMaxLength(100).IsRequired();
-        builder.Property(l => l.LastName).HasMaxLength(100).IsRequired();
+        builder.Property(l => l.LastName).HasMaxLength(100);
         builder.Property(l => l.Email).HasMaxLength(256).IsRequired();
         builder.Property(l => l.Phone).HasMaxLength(20).IsRequired();
         builder.Property(l => l.SecondaryPhone).HasMaxLength(20);
         builder.Property(l => l.Notes).HasMaxLength(2000);
         builder.Property(l => l.PropertyName).HasMaxLength(200).IsRequired();
-        builder.Property(l => l.PropertyAddress).HasMaxLength(500).IsRequired();
+        builder.Property(l => l.AddressLine1).HasMaxLength(500).IsRequired();
+        builder.Property(l => l.AddressLine2).HasMaxLength(500);
+        builder.Property(l => l.City).HasMaxLength(100);
+        builder.Property(l => l.PinCode).HasMaxLength(12);
+        builder.Property(l => l.State).HasMaxLength(100);
         builder.Property(l => l.PropertyType).HasConversion<int>();
         builder.Property(l => l.PropertySizeUnit).HasConversion<int>();
         builder.Property(l => l.PropertyConfiguration).HasConversion<int>();
         builder.Property(l => l.Phase)
             .HasConversion<int>()
-            .HasDefaultValue(LeadPhase.NewEnquiry);
-
-        // A declared default, not merely a CLR initialiser: without it the migration adding
-        // this column backfills existing leads with 0, which is not a member of the enum.
-        builder.Property(l => l.OverallStatus)
-            .HasConversion<int>()
-            .HasDefaultValue(LeadOverallStatus.Active);
+            .HasDefaultValue(LeadPhase.NewClient);
         builder.Property(l => l.PropertySize).HasColumnType("decimal(18,2)");
         builder.Property(l => l.BudgetMin).HasColumnType("decimal(18,2)");
         builder.Property(l => l.BudgetMax).HasColumnType("decimal(18,2)");
-
-        builder.Property(l => l.FloorPlanBlobUrl).HasMaxLength(1000);
-        builder.Property(l => l.FloorPlanFileName).HasMaxLength(255);
-        builder.Property(l => l.FloorPlanContentType).HasMaxLength(150);
 
         // No FK to Employee: Employee lives in the UsersAccess module, and constraining here
         // would force a cross-module project reference (see IEmployeeDirectory).
@@ -49,7 +43,11 @@ public sealed class LeadConfiguration : IEntityTypeConfiguration<Lead>
 
         // The follow-up worklist ("who do I have to call today") sorts on this.
         builder.HasIndex(l => l.NextFollowUpDate);
-        builder.HasIndex(l => l.OverallStatus);
+
+        builder.HasMany(l => l.FloorPlans)
+            .WithOne(f => f.Lead!)
+            .HasForeignKey(f => f.LeadId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(l => l.Rooms)
             .WithOne(r => r.Lead!)
@@ -94,5 +92,22 @@ public sealed class LeadRoomRequirementConfiguration : IEntityTypeConfiguration<
         builder.Property(i => i.Notes).HasMaxLength(1000);
 
         builder.HasIndex(i => i.LeadRoomId);
+    }
+}
+
+/// <summary>Mapping for <see cref="LeadFloorPlanImage"/>.</summary>
+public sealed class LeadFloorPlanImageConfiguration : IEntityTypeConfiguration<LeadFloorPlanImage>
+{
+    public void Configure(EntityTypeBuilder<LeadFloorPlanImage> builder)
+    {
+        builder.ToTable("LeadFloorPlanImages");
+        builder.HasKey(f => f.Id);
+
+        builder.Property(f => f.BlobUrl).HasMaxLength(1000).IsRequired();
+        builder.Property(f => f.FileName).HasMaxLength(255).IsRequired();
+        builder.Property(f => f.ContentType).HasMaxLength(150);
+
+        // The viewer pages through these in order, so they are always read as a sorted set.
+        builder.HasIndex(f => new { f.LeadId, f.SortOrder });
     }
 }

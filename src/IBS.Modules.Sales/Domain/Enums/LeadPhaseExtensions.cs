@@ -6,29 +6,32 @@ public static class LeadPhaseExtensions
     /// <summary>
     /// Phases that can only have been reached after a quotation went to the client.
     /// <para>
-    /// Lost and Closed are absent on purpose: a lead can be lost before anything was quoted,
-    /// and the phase alone cannot tell the two apart. That gap is exactly why the date below
-    /// is stored rather than inferred - this set only decides when to stamp it.
+    /// Just the one, now that the phases are flat: talking a quotation through means it was
+    /// sent. Interested, Closure and Lost are absent on purpose - a lead can be any of the
+    /// three with nothing ever quoted, and the phase alone cannot tell the cases apart. That
+    /// gap is exactly why the date is stored rather than inferred; this set only decides when
+    /// to stamp it.
     /// </para>
     /// </summary>
     private static readonly HashSet<LeadPhase> QuotationSharedPhases =
     [
-        LeadPhase.QuotationShared,
-        LeadPhase.QuotationRevisionRequired,
-        LeadPhase.QuotationApproved,
-        LeadPhase.DesignInProgress,
-        LeadPhase.DesignShared,
-        LeadPhase.DesignRevisionRequired,
-        LeadPhase.DesignApproved,
-        LeadPhase.FinalQuotationInProgress,
-        LeadPhase.FinalQuotationShared,
-        LeadPhase.FinalQuotationRevisionRequired,
-        LeadPhase.FinalQuotationApproved,
-        LeadPhase.FinalQuotationRejected,
-        LeadPhase.AdvanceReceived,
-        LeadPhase.ConvertedToProject
+        LeadPhase.QuotationDiscussion
     ];
 
     /// <summary>True when reaching this phase implies a quotation has been sent.</summary>
     public static bool ImpliesQuotationShared(this LeadPhase phase) => QuotationSharedPhases.Contains(phase);
+
+    /// <summary>
+    /// Phases where nobody is working the lead any more. Used to keep closed-out leads off
+    /// the top of the default list ordering, which is a call list.
+    /// </summary>
+    private static readonly HashSet<LeadPhase> ClosedPhases =
+    [
+        LeadPhase.Fake,
+        LeadPhase.Lost,
+        LeadPhase.Closure
+    ];
+
+    /// <summary>True when the lead is no longer in play, whichever way it went.</summary>
+    public static bool IsClosed(this LeadPhase phase) => ClosedPhases.Contains(phase);
 }

@@ -189,10 +189,11 @@ public sealed class QuotationDeliveryService(
         quotation.UpdatedAt = now;
         quotation.UpdatedByEmployeeId = actorId;
 
+        // The same phase whichever stage went out: the phase list no longer runs a separate
+        // track for the final quotation, and "the client is looking at a quotation" is the
+        // fact either way.
         var lead0 = await db.Leads.FirstAsync(l => l.Id == leadId, ct);
-        lead0.Phase = quotation.Stage == QuotationStage.Initial
-            ? LeadPhase.QuotationShared
-            : LeadPhase.FinalQuotationShared;
+        lead0.Phase = LeadPhase.QuotationDiscussion;
 
         if (quotation.Stage == QuotationStage.Initial)
         {

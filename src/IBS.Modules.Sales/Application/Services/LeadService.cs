@@ -43,6 +43,12 @@ public sealed class LeadService(
     private static readonly HashSet<string> AllowedFloorPlanContentTypes =
         new(StringComparer.OrdinalIgnoreCase) { "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif" };
 
+    /// <summary>
+    /// A ceiling on images per lead. Not a business rule so much as a guard: the viewer pages
+    /// through them one at a time, and nobody is stepping through a hundred drawings.
+    /// </summary>
+    private const int MaxFloorPlansPerLead = 20;
+
     private readonly SalesOptions _options = options.Value;
 
     public async Task<PagedResult<LeadListItemResponse>> ListAsync(
@@ -73,11 +79,6 @@ public sealed class LeadService(
             q = q.Where(l => l.PropertyType == query.PropertyType);
         }
 
-        if (query.OverallStatus is not null)
-        {
-            q = q.Where(l => l.OverallStatus == query.OverallStatus);
-        }
-
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var term = query.Search.Trim();
@@ -86,7 +87,9 @@ public sealed class LeadService(
                 EF.Functions.Like(l.LastName, $"%{term}%") ||
                 EF.Functions.Like(l.Email, $"%{term}%") ||
                 EF.Functions.Like(l.PropertyName, $"%{term}%") ||
-                EF.Functions.Like(l.PropertyAddress, $"%{term}%"));
+                EF.Functions.Like(l.AddressLine1, $"%{term}%") ||
+                EF.Functions.Like(l.AddressLine2 ?? "", $"%{term}%") ||
+                EF.Functions.Like(l.City ?? "", $"%{term}%"));
         }
 
         var total = await q.CountAsync(ct);
@@ -97,18 +100,33 @@ public sealed class LeadService(
             .Select(l => new LeadListItemResponse
             {
                 Id = l.Id,
-                FullName = l.FirstName + " " + l.LastName,
+                FullName = (l.FirstName + " " + (l.LastName ?? "")).Trim(),
                 Email = l.Email,
                 Phone = l.Phone,
                 PropertyName = l.PropertyName,
-                PropertyAddress = l.PropertyAddress,
+                AddressLine1 = l.AddressLine1,
+                AddressLine2 = l.AddressLine2,
+                City = l.City,
+                PinCode = l.PinCode,
+                State = l.State,
                 PropertyType = l.PropertyType,
+                PropertyConfiguration = l.PropertyConfiguration,
+                PropertySize = l.PropertySize,
+                PropertySizeUnit = l.PropertySizeUnit,
                 BudgetMin = l.BudgetMin,
                 BudgetMax = l.BudgetMax,
                 Phase = l.Phase,
-                OverallStatus = l.OverallStatus,
                 IsInterested = l.IsInterested,
-                HasFloorPlan = l.FloorPlanBlobUrl != null,
+                HasFloorPlan = l.FloorPlans.Any(),
+
+                // What the client was last quoted: the newest version of the initial
+                // quotation. A correlated subquery rather than a join, so a lead that has
+                // never been quoted still returns its row, with null here.
+                QuoteValue = db.Quotations
+                    .Where(quote => quote.LeadId == l.Id && quote.Stage == QuotationStage.Initial)
+                    .OrderByDescending(quote => quote.VersionNumber)
+                    .Select(quote => (decimal?)quote.GrandTotal)
+                    .FirstOrDefault(),
                 NextFollowUpDate = l.NextFollowUpDate,
                 QuotationSharedAt = l.QuotationSharedAt,
                 CreatedAt = l.CreatedAt,
@@ -150,13 +168,17 @@ public sealed class LeadService(
         var lead = new Lead
         {
             FirstName = request.FirstName.Trim(),
-            LastName = request.LastName.Trim(),
+            LastName = Blank(request.LastName),
             Email = request.Email.Trim(),
             Phone = request.Phone.Trim(),
             SecondaryPhone = request.SecondaryPhone?.Trim(),
             Notes = request.Notes?.Trim(),
             PropertyName = request.PropertyName.Trim(),
-            PropertyAddress = request.PropertyAddress.Trim(),
+            AddressLine1 = request.AddressLine1.Trim(),
+            AddressLine2 = Blank(request.AddressLine2),
+            City = Blank(request.City),
+            PinCode = Blank(request.PinCode),
+            State = Blank(request.State),
             PropertyType = request.PropertyType,
             PropertySize = request.PropertySize,
             PropertySizeUnit = request.PropertySizeUnit,
@@ -168,7 +190,6 @@ public sealed class LeadService(
             NextFollowUpDate = request.NextFollowUpDate,
             QuotationSharedAt = request.QuotationSharedAt,
             IsInterested = request.IsInterested,
-            OverallStatus = request.OverallStatus,
             CreatedAt = now,
             CreatedByEmployeeId = actorId
         };
@@ -204,7 +225,7 @@ public sealed class LeadService(
 
         await audit.WriteAsync(
             AuditActions.LeadCreated, nameof(Lead), lead.Id, actorId,
-            new { lead.Email, lead.PropertyName, lead.PropertyAddress, roomCount = lead.Rooms.Count }, ct);
+            new { lead.Email, lead.PropertyName, lead.AddressLine1, roomCount = lead.Rooms.Count }, ct);
 
         if (lead.AssignedToEmployeeId is not null)
         {
@@ -231,13 +252,17 @@ public sealed class LeadService(
         var previousPhase = lead.Phase;
 
         lead.FirstName = request.FirstName.Trim();
-        lead.LastName = request.LastName.Trim();
+        lead.LastName = Blank(request.LastName);
         lead.Email = request.Email.Trim();
         lead.Phone = request.Phone.Trim();
         lead.SecondaryPhone = request.SecondaryPhone?.Trim();
         lead.Notes = request.Notes?.Trim();
         lead.PropertyName = request.PropertyName.Trim();
-        lead.PropertyAddress = request.PropertyAddress.Trim();
+        lead.AddressLine1 = request.AddressLine1.Trim();
+        lead.AddressLine2 = Blank(request.AddressLine2);
+        lead.City = Blank(request.City);
+        lead.PinCode = Blank(request.PinCode);
+        lead.State = Blank(request.State);
         lead.PropertyType = request.PropertyType;
         lead.PropertySize = request.PropertySize;
         lead.PropertySizeUnit = request.PropertySizeUnit;
@@ -259,7 +284,6 @@ public sealed class LeadService(
             lead.QuotationSharedAt = DateOnly.FromDateTime(now.UtcDateTime);
         }
         lead.IsInterested = request.IsInterested;
-        lead.OverallStatus = request.OverallStatus;
         lead.UpdatedAt = now;
         lead.UpdatedByEmployeeId = actorId;
 
@@ -305,14 +329,17 @@ public sealed class LeadService(
     {
         await permissions.RequirePermissionAsync(actorId, PermissionCodes.ManageLeads, ct);
 
-        var lead = await db.Leads.FirstOrDefaultAsync(l => l.Id == leadId, ct)
+        var lead = await db.Leads
+            .Include(l => l.FloorPlans)
+            .FirstOrDefaultAsync(l => l.Id == leadId, ct)
                   ?? throw new NotFoundException("Lead", leadId);
 
-        // The rooms go with the lead by cascade; the floor plan is in storage, which no
-        // cascade reaches, so it is removed explicitly or it would be orphaned there forever.
-        if (lead.FloorPlanBlobUrl is not null)
+        // The rooms and the image rows go with the lead by cascade; the images themselves sit
+        // in storage, which no cascade reaches, so they are removed explicitly or they would
+        // be orphaned there forever.
+        foreach (var image in lead.FloorPlans)
         {
-            await storage.DeleteAsync(lead.FloorPlanBlobUrl, ct);
+            await storage.DeleteAsync(image.BlobUrl, ct);
         }
 
         db.Leads.Remove(lead);
@@ -456,7 +483,7 @@ public sealed class LeadService(
         })];
     }
 
-    // --- floor plan ---------------------------------------------------------------
+    // --- floor plans ---------------------------------------------------------------
 
     public async Task<LeadDetailResponse> UploadFloorPlanAsync(
         Guid leadId, string fileName, string? contentType, Stream content, Guid actorId, CancellationToken ct = default)
@@ -474,8 +501,15 @@ public sealed class LeadService(
                 "floor_plan_too_large");
         }
 
-        // The lead's own assignee uploads its floor plan, same as they edit its other details.
+        // The lead's own assignee uploads its floor plans, same as they edit its other details.
         var (lead, access) = await LoadAccessibleLeadAsync(leadId, actorId, tracked: true, ct);
+
+        if (lead.FloorPlans.Count >= MaxFloorPlansPerLead)
+        {
+            throw new BusinessRuleException(
+                $"A lead can hold {MaxFloorPlansPerLead} floor plan images. Delete one before adding another.",
+                "too_many_floor_plans");
+        }
 
         var now = clock.UtcNow;
         var safeName = Path.GetFileName(fileName);
@@ -483,15 +517,23 @@ public sealed class LeadService(
 
         var blobUrl = await storage.UploadAsync(_options.FloorPlanContainer, blobName, content, contentType, ct);
 
-        // Uploaded before the old one is removed: if the upload fails there is still a plan on
-        // file, where deleting first would have left the lead with neither.
-        var previous = lead.FloorPlanBlobUrl;
+        // Appended, never replacing: a flat is rarely one drawing, and the upload that used to
+        // overwrite the previous image is exactly what this section stopped doing.
+        var image = new LeadFloorPlanImage
+        {
+            LeadId = lead.Id,
+            BlobUrl = blobUrl,
+            FileName = safeName,
+            ContentType = contentType,
+            SizeInBytes = content.CanSeek ? content.Length : null,
+            UploadedAt = now,
+            SortOrder = lead.FloorPlans.Count == 0 ? 0 : lead.FloorPlans.Max(f => f.SortOrder) + 1,
+            CreatedAt = now,
+            CreatedByEmployeeId = actorId
+        };
 
-        lead.FloorPlanBlobUrl = blobUrl;
-        lead.FloorPlanFileName = safeName;
-        lead.FloorPlanContentType = contentType;
-        lead.FloorPlanSizeInBytes = content.CanSeek ? content.Length : null;
-        lead.FloorPlanUploadedAt = now;
+        db.LeadFloorPlanImages.Add(image);
+
         lead.UpdatedAt = now;
         lead.UpdatedByEmployeeId = actorId;
 
@@ -501,32 +543,27 @@ public sealed class LeadService(
 
         await db.SaveChangesAsync(ct);
 
-        if (previous is not null)
-        {
-            await storage.DeleteAsync(previous, ct);
-        }
+        // The navigation was loaded before the insert, so the new image is added to it by hand
+        // rather than by re-reading the lead.
+        lead.FloorPlans.Add(image);
 
         return await MapDetailAsync(lead, access, actorId, ct);
     }
 
     public async Task<LeadDetailResponse> DeleteFloorPlanAsync(
-        Guid leadId, Guid actorId, CancellationToken ct = default)
+        Guid leadId, Guid imageId, Guid actorId, CancellationToken ct = default)
     {
         var (lead, access) = await LoadAccessibleLeadAsync(leadId, actorId, tracked: true, ct);
 
-        if (lead.FloorPlanBlobUrl is null)
-        {
-            throw new BusinessRuleException("This lead has no floor plan on file.", "no_floor_plan");
-        }
+        var image = lead.FloorPlans.FirstOrDefault(f => f.Id == imageId)
+            ?? throw new NotFoundException("Floor plan", imageId);
 
-        var blobUrl = lead.FloorPlanBlobUrl;
-        var fileName = lead.FloorPlanFileName;
+        var blobUrl = image.BlobUrl;
+        var fileName = image.FileName;
 
-        lead.FloorPlanBlobUrl = null;
-        lead.FloorPlanFileName = null;
-        lead.FloorPlanContentType = null;
-        lead.FloorPlanSizeInBytes = null;
-        lead.FloorPlanUploadedAt = null;
+        db.LeadFloorPlanImages.Remove(image);
+        lead.FloorPlans.Remove(image);
+
         lead.UpdatedAt = clock.UtcNow;
         lead.UpdatedByEmployeeId = actorId;
 
@@ -535,23 +572,27 @@ public sealed class LeadService(
 
         await db.SaveChangesAsync(ct);
 
+        // Only after the row is gone: a blob with no row is invisible, a row with no blob is a
+        // broken image in the viewer.
         await storage.DeleteAsync(blobUrl, ct);
 
         return await MapDetailAsync(lead, access, actorId, ct);
     }
 
     public async Task<LeadFloorPlanContent?> OpenFloorPlanAsync(
-        Guid leadId, Guid actorId, CancellationToken ct = default)
+        Guid leadId, Guid imageId, Guid actorId, CancellationToken ct = default)
     {
-        // Same rule as GetAsync: the image is exactly as visible as the lead that owns it.
+        // Same rule as GetAsync: an image is exactly as visible as the lead that owns it.
         var (lead, _) = await LoadAccessibleLeadAsync(leadId, actorId, tracked: false, ct);
 
-        if (lead.FloorPlanBlobUrl is null)
+        var image = lead.FloorPlans.FirstOrDefault(f => f.Id == imageId);
+
+        if (image is null)
         {
             return null;
         }
 
-        var stream = await storage.OpenReadAsync(lead.FloorPlanBlobUrl, ct);
+        var stream = await storage.OpenReadAsync(image.BlobUrl, ct);
 
         if (stream is null)
         {
@@ -561,16 +602,17 @@ public sealed class LeadService(
         return new LeadFloorPlanContent
         {
             Content = stream,
-            FileName = lead.FloorPlanFileName ?? "floor-plan",
-            ContentType = lead.FloorPlanContentType ?? "application/octet-stream"
+            FileName = image.FileName,
+            ContentType = image.ContentType ?? "application/octet-stream"
         };
     }
+
 
     /// <summary>
     /// Orders the list. Ordering has to happen in SQL, before paging, or page 2 would be
     /// drawn from a differently-sorted set than page 1.
     /// </summary>
-    private static IQueryable<Lead> ApplySort(IQueryable<Lead> q, LeadQuery query)
+    private IQueryable<Lead> ApplySort(IQueryable<Lead> q, LeadQuery query)
     {
         var descending = query.SortDescending;
 
@@ -588,9 +630,6 @@ public sealed class LeadService(
             "phase" => descending
                 ? q.OrderByDescending(l => l.Phase)
                 : q.OrderBy(l => l.Phase),
-            "overallstatus" => descending
-                ? q.OrderByDescending(l => l.OverallStatus)
-                : q.OrderBy(l => l.OverallStatus),
             // By assignee id, not name: the names live in the UsersAccess module and are
             // stitched on after paging, so SQL cannot order by them. This groups each
             // person's leads together without putting them in alphabetical order.
@@ -598,22 +637,48 @@ public sealed class LeadService(
                 ? q.OrderByDescending(l => l.AssignedToEmployeeId)
                 : q.OrderBy(l => l.AssignedToEmployeeId),
             "floorplan" => descending
-                ? q.OrderByDescending(l => l.FloorPlanBlobUrl != null)
-                : q.OrderBy(l => l.FloorPlanBlobUrl != null),
+                ? q.OrderByDescending(l => l.FloorPlans.Any())
+                : q.OrderBy(l => l.FloorPlans.Any()),
+            "quotevalue" => descending
+                ? q.OrderByDescending(l => db.Quotations
+                    .Where(quote => quote.LeadId == l.Id && quote.Stage == QuotationStage.Initial)
+                    .OrderByDescending(quote => quote.VersionNumber)
+                    .Select(quote => (decimal?)quote.GrandTotal)
+                    .FirstOrDefault())
+                : q.OrderBy(l => db.Quotations
+                    .Where(quote => quote.LeadId == l.Id && quote.Stage == QuotationStage.Initial)
+                    .OrderByDescending(quote => quote.VersionNumber)
+                    .Select(quote => (decimal?)quote.GrandTotal)
+                    .FirstOrDefault()),
             "interested" => descending
                 ? q.OrderByDescending(l => l.IsInterested)
                 : q.OrderBy(l => l.IsInterested),
             "quotationshared" => descending
                 ? q.OrderByDescending(l => l.QuotationSharedAt)
                 : q.OrderBy(l => l.QuotationSharedAt),
-            "nextfollowup" => descending
-                ? q.OrderByDescending(l => l.NextFollowUpDate)
-                : q.OrderBy(l => l.NextFollowUpDate),
-            _ => descending
+            // Descending is a plain reverse, so the column header still toggles. Ascending is
+            // the worklist order below, which is also what the list opens on.
+            "nextfollowup" when descending => q.OrderByDescending(l => l.NextFollowUpDate),
+            "nextfollowup" => FollowUpOrder(q),
+            "createdat" => descending
                 ? q.OrderByDescending(l => l.CreatedAt)
-                : q.OrderBy(l => l.CreatedAt)
+                : q.OrderBy(l => l.CreatedAt),
+            _ => FollowUpOrder(q)
         };
     }
+
+    /// <summary>
+    /// The order the list opens on, and what "sort by follow-up" means going up: the call
+    /// list. Leads nobody has touched yet lead it - they have no follow-up date to sort by and
+    /// are the most perishable thing on the page - then everything else by when it is due,
+    /// soonest (and overdue) first. Leads with no date at all sit at the bottom rather than
+    /// ahead of today's calls, which is where SQL would otherwise put the nulls.
+    /// </summary>
+    private static IQueryable<Lead> FollowUpOrder(IQueryable<Lead> q) =>
+        q.OrderByDescending(l => l.Phase == LeadPhase.NewClient)
+            .ThenBy(l => l.NextFollowUpDate == null)
+            .ThenBy(l => l.NextFollowUpDate)
+            .ThenByDescending(l => l.CreatedAt);
 
     public async Task<IReadOnlyList<LeadPhaseCountResponse>> GetPhaseCountsAsync(
         Guid actorId, CancellationToken ct = default)
@@ -702,6 +767,7 @@ public sealed class LeadService(
         var q = tracked ? db.Leads : db.Leads.AsNoTracking();
 
         return q
+            .Include(l => l.FloorPlans)
             .Include(l => l.Rooms)
             .ThenInclude(r => r.Requirements);
     }
@@ -772,6 +838,10 @@ public sealed class LeadService(
     /// the shorthand expansion happens client-side, and a mis-typed suffix (5L vs 5K) is
     /// exactly the mistake that produces a max below the min.
     /// </summary>
+    /// <summary>Trims an optional field, turning whitespace-only input into null.</summary>
+    private static string? Blank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static void RequireBudgetOrder(decimal? min, decimal? max)
     {
         if (min is not null && max is not null && max < min)
@@ -802,14 +872,18 @@ public sealed class LeadService(
         {
             Id = lead.Id,
             FirstName = lead.FirstName,
-            LastName = lead.LastName,
+            LastName = lead.LastName ?? string.Empty,
             FullName = lead.FullName,
             Email = lead.Email,
             Phone = lead.Phone,
             SecondaryPhone = lead.SecondaryPhone,
             Notes = lead.Notes,
             PropertyName = lead.PropertyName,
-            PropertyAddress = lead.PropertyAddress,
+            AddressLine1 = lead.AddressLine1,
+            AddressLine2 = lead.AddressLine2,
+            City = lead.City,
+            PinCode = lead.PinCode,
+            State = lead.State,
             PropertyType = lead.PropertyType,
             PropertySize = lead.PropertySize,
             PropertySizeUnit = lead.PropertySizeUnit,
@@ -821,8 +895,7 @@ public sealed class LeadService(
             NextFollowUpDate = lead.NextFollowUpDate,
             QuotationSharedAt = lead.QuotationSharedAt,
             IsInterested = lead.IsInterested,
-            OverallStatus = lead.OverallStatus,
-            FloorPlan = MapFloorPlan(lead),
+            FloorPlans = MapFloorPlans(lead),
             Rooms = MapRooms(lead),
             AssignedToEmployeeId = lead.AssignedToEmployeeId,
             AssignedToName = NameOf(lead.AssignedToEmployeeId),
@@ -851,17 +924,19 @@ public sealed class LeadService(
         return response;
     }
 
-    private static LeadFloorPlanResponse? MapFloorPlan(Lead lead) =>
-        lead.FloorPlanBlobUrl is null
-            ? null
-            : new LeadFloorPlanResponse
+    private static List<LeadFloorPlanResponse> MapFloorPlans(Lead lead) =>
+        [.. lead.FloorPlans
+            .OrderBy(f => f.SortOrder)
+            .ThenBy(f => f.UploadedAt)
+            .Select(f => new LeadFloorPlanResponse
             {
-                FileName = lead.FloorPlanFileName ?? "floor-plan",
-                ContentType = lead.FloorPlanContentType,
-                SizeInBytes = lead.FloorPlanSizeInBytes,
-                UploadedAt = lead.FloorPlanUploadedAt,
-                Url = $"/api/leads/{lead.Id}/floor-plan"
-            };
+                Id = f.Id,
+                FileName = f.FileName,
+                ContentType = f.ContentType,
+                SizeInBytes = f.SizeInBytes,
+                UploadedAt = f.UploadedAt,
+                Url = $"/api/leads/{lead.Id}/floor-plans/{f.Id}"
+            })];
 
     private static List<LeadRoomResponse> MapRooms(Lead lead) =>
         [.. lead.Rooms

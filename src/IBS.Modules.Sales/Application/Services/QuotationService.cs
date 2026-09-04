@@ -514,7 +514,7 @@ public sealed class QuotationService(
         quotation.UpdatedAt = now;
         quotation.UpdatedByEmployeeId = actorId;
 
-        lead.Phase = PhaseFor(quotation.Stage, request.Status);
+        lead.Phase = PhaseFor(request.Status);
         lead.UpdatedAt = now;
         lead.UpdatedByEmployeeId = actorId;
 
@@ -866,17 +866,13 @@ public sealed class QuotationService(
         id is not null && names.TryGetValue(id.Value, out var summary) ? summary.FullName : null;
 
     /// <summary>
-    /// Where a decision leaves the lead. The stage decides which block of the phase list applies,
-    /// which is the whole reason one quotation entity can serve both.
+    /// Where a decision leaves the lead. The stage no longer matters - the phases are flat, and
+    /// a client approving a quotation is Interested whichever of the two they approved.
     /// </summary>
-    private static LeadPhase PhaseFor(QuotationStage stage, QuotationStatus status) =>
-        (stage, status) switch
-        {
-            (QuotationStage.Initial, QuotationStatus.Approved) => LeadPhase.QuotationApproved,
-            (QuotationStage.Initial, _) => LeadPhase.QuotationRevisionRequired,
-            (QuotationStage.Final, QuotationStatus.Approved) => LeadPhase.FinalQuotationApproved,
-            _ => LeadPhase.FinalQuotationRevisionRequired
-        };
+    private static LeadPhase PhaseFor(QuotationStatus status) =>
+        status == QuotationStatus.Approved
+            ? LeadPhase.Interested
+            : LeadPhase.QuotationDiscussion;
 
     private static List<string> DistinctValues(IEnumerable<string> values) =>
         values

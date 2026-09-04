@@ -38,6 +38,7 @@ public class IbsDbContext(DbContextOptions<IbsDbContext> options)
 
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<LeadRoom> LeadRooms => Set<LeadRoom>();
+    public DbSet<LeadFloorPlanImage> LeadFloorPlanImages => Set<LeadFloorPlanImage>();
     public DbSet<LeadRoomRequirement> LeadRoomRequirements => Set<LeadRoomRequirement>();
 
     public DbSet<Quotation> Quotations => Set<Quotation>();

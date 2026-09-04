@@ -43,11 +43,11 @@ public interface ILeadService
     Task<LeadDetailResponse> UploadFloorPlanAsync(
         Guid leadId, string fileName, string? contentType, Stream content, Guid actorId, CancellationToken ct = default);
 
-    Task<LeadDetailResponse> DeleteFloorPlanAsync(Guid leadId, Guid actorId, CancellationToken ct = default);
+    Task<LeadDetailResponse> DeleteFloorPlanAsync(Guid leadId, Guid imageId, Guid actorId, CancellationToken ct = default);
 
     /// <summary>
     /// Opens the stored floor plan for streaming, subject to the same visibility rule as the
     /// lead itself. Null when the lead has no floor plan on file.
     /// </summary>
-    Task<LeadFloorPlanContent?> OpenFloorPlanAsync(Guid leadId, Guid actorId, CancellationToken ct = default);
+    Task<LeadFloorPlanContent?> OpenFloorPlanAsync(Guid leadId, Guid imageId, Guid actorId, CancellationToken ct = default);
 }

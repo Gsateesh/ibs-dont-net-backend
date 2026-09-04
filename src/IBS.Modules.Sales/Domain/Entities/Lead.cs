@@ -12,7 +12,8 @@ public class Lead : AuditableEntity
 {
     public string FirstName { get; set; } = string.Empty;
 
-    public string LastName { get; set; } = string.Empty;
+    /// <summary>Optional: plenty of enquiries arrive with a first name and a phone number only.</summary>
+    public string? LastName { get; set; }
 
     /// <summary>Convenience projection, not mapped to a column.</summary>
     public string FullName => $"{FirstName} {LastName}".Trim();
@@ -27,7 +28,27 @@ public class Lead : AuditableEntity
 
     public string PropertyName { get; set; } = string.Empty;
 
-    public string PropertyAddress { get; set; } = string.Empty;
+    // --- Property address -----------------------------------------------------------
+
+    /// <summary>
+    /// Door or flat number and street - the part that identifies the unit. Was a single
+    /// free-text PropertyAddress; split so the list can show "Iris by Raghava, B-10" on one
+    /// line without dragging the city and pin code onto it.
+    /// </summary>
+    public string AddressLine1 { get; set; } = string.Empty;
+
+    public string? AddressLine2 { get; set; }
+
+    /// <summary>
+    /// Free text, offered as a dropdown of the cities the studio already has branches in. Not
+    /// a foreign key: a lead can sit in a city with no branch yet, and pinning it to the
+    /// branch list would block capturing that enquiry.
+    /// </summary>
+    public string? City { get; set; }
+
+    public string? PinCode { get; set; }
+
+    public string? State { get; set; }
 
     public PropertyType PropertyType { get; set; }
 
@@ -44,7 +65,7 @@ public class Lead : AuditableEntity
     public decimal? BudgetMax { get; set; }
 
     /// <summary>Where the lead has reached in the studio journey.</summary>
-    public LeadPhase Phase { get; set; } = LeadPhase.NewEnquiry;
+    public LeadPhase Phase { get; set; } = LeadPhase.NewClient;
 
     // --- follow-up tracking ---------------------------------------------------------
 
@@ -63,24 +84,14 @@ public class Lead : AuditableEntity
     /// <summary>Whether the client has expressed interest, as judged by whoever owns the lead.</summary>
     public bool IsInterested { get; set; }
 
-    public LeadOverallStatus OverallStatus { get; set; } = LeadOverallStatus.Active;
-
     // --- floor plan -----------------------------------------------------------------
 
     /// <summary>
-    /// Storage reference for the uploaded floor plan, null when none has been uploaded. Never
-    /// handed to the browser directly - the bytes are streamed back through the API so the
-    /// same permission checks apply to the image as to the lead (see LeadsController).
+    /// The floor plan images on file, in display order. Never handed to the browser directly -
+    /// the bytes are streamed back through the API so the same permission checks apply to the
+    /// images as to the lead itself (see LeadsController).
     /// </summary>
-    public string? FloorPlanBlobUrl { get; set; }
-
-    public string? FloorPlanFileName { get; set; }
-
-    public string? FloorPlanContentType { get; set; }
-
-    public long? FloorPlanSizeInBytes { get; set; }
-
-    public DateTimeOffset? FloorPlanUploadedAt { get; set; }
+    public ICollection<LeadFloorPlanImage> FloorPlans { get; set; } = [];
 
     // --- assignment -----------------------------------------------------------------
 

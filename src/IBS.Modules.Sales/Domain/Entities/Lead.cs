@@ -10,6 +10,16 @@ namespace IBS.Modules.Sales.Domain.Entities;
 /// </summary>
 public class Lead : AuditableEntity
 {
+    /// <summary>
+    /// A running number assigned once at creation, in creation order. Never reused and never
+    /// renumbered - it is what "CUS-0007" means, and both would silently change that meaning
+    /// for a code already handed to a client.
+    /// </summary>
+    public int CustomerNumber { get; set; }
+
+    /// <summary>The customer-facing form of <see cref="CustomerNumber"/>. Not mapped to a column.</summary>
+    public string CustomerCode => $"CUS-{CustomerNumber:D4}";
+
     public string FirstName { get; set; } = string.Empty;
 
     /// <summary>Optional: plenty of enquiries arrive with a first name and a phone number only.</summary>

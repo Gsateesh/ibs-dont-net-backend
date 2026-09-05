@@ -13,6 +13,15 @@ public sealed class LeadConfiguration : IEntityTypeConfiguration<Lead>
         builder.ToTable("Leads");
         builder.HasKey(l => l.Id);
 
+        // Assigned once in LeadService.CreateAsync from the current max, the same pattern
+        // FloorPlanImage.SortOrder already uses in this module - no DB sequence, since lead
+        // creation is low-volume enough that the pattern's small race window is an acceptable
+        // trade for staying consistent with the rest of the codebase. The unique index below is
+        // the backstop: a collision fails loudly at SaveChanges rather than issuing a duplicate.
+        builder.Property(l => l.CustomerNumber).IsRequired();
+        builder.HasIndex(l => l.CustomerNumber).IsUnique();
+        builder.Ignore(l => l.CustomerCode);
+
         builder.Property(l => l.FirstName).HasMaxLength(100).IsRequired();
         builder.Property(l => l.LastName).HasMaxLength(100);
         builder.Property(l => l.Email).HasMaxLength(256).IsRequired();

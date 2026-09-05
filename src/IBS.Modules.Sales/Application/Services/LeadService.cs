@@ -100,6 +100,9 @@ public sealed class LeadService(
             .Select(l => new LeadListItemResponse
             {
                 Id = l.Id,
+                // CustomerCode itself is a computed property EF cannot translate to SQL; the raw
+                // number travels instead and is formatted below, once the query has run.
+                CustomerNumber = l.CustomerNumber,
                 FullName = (l.FirstName + " " + (l.LastName ?? "")).Trim(),
                 Email = l.Email,
                 Phone = l.Phone,
@@ -141,6 +144,8 @@ public sealed class LeadService(
 
         foreach (var item in items)
         {
+            item.CustomerCode = $"CUS-{item.CustomerNumber:D4}";
+
             if (item.AssignedToEmployeeId is not null &&
                 summaries.TryGetValue(item.AssignedToEmployeeId.Value, out var summary))
             {
@@ -165,8 +170,11 @@ public sealed class LeadService(
 
         var now = clock.UtcNow;
 
+        var nextCustomerNumber = (await db.Leads.MaxAsync(l => (int?)l.CustomerNumber, ct) ?? 0) + 1;
+
         var lead = new Lead
         {
+            CustomerNumber = nextCustomerNumber,
             FirstName = request.FirstName.Trim(),
             LastName = Blank(request.LastName),
             Email = request.Email.Trim(),
@@ -871,6 +879,7 @@ public sealed class LeadService(
         var response = new LeadDetailResponse
         {
             Id = lead.Id,
+            CustomerCode = lead.CustomerCode,
             FirstName = lead.FirstName,
             LastName = lead.LastName ?? string.Empty,
             FullName = lead.FullName,

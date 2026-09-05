@@ -28,6 +28,11 @@ public interface IQuotationPricingService
 /// <inheritdoc cref="IQuotationPricingService" />
 public sealed class QuotationPricingService(ISalesDbContext db, IClock clock) : IQuotationPricingService
 {
+    // Matches the category keys the catalogue seeds under QuotationCatalogSeed - not an enum,
+    // because the catalogue's category axis is seeded data, not a fixed domain concept.
+    private const string DiscountableCategoryModular = "modular";
+    private const string DiscountableCategoryCarpentry = "carpentry";
+
     public async Task<RateCard> LoadRateCardAsync(
         IReadOnlyCollection<string> itemKeys, CancellationToken ct = default)
     {
@@ -91,17 +96,26 @@ public sealed class QuotationPricingService(ISalesDbContext db, IClock clock) : 
 
         quotation.Subtotal = Round(quotation.Rooms.Sum(r => r.RoomTotal));
 
+        // The studio's discount is a trade concession on the built-in-place work - Modular and
+        // Carpentry - never on furniture, accessories or the other catalogue-priced lines, which
+        // carry their own thin margin already. So the base it is taken against is that subset of
+        // the subtotal, not the whole quotation.
+        var discountableBase = Round(quotation.Rooms
+            .SelectMany(r => r.LineItems)
+            .Where(i => i.CategoryKey is DiscountableCategoryModular or DiscountableCategoryCarpentry)
+            .Sum(i => i.Amount));
+
         // Percent and flat amount are mutually exclusive; percent is authoritative when set, so
         // the stored amount always agrees with the percentage shown beside it on the PDF.
         quotation.DiscountAmount = quotation.DiscountPercent is { } percent
-            ? Round(quotation.Subtotal * percent / 100m)
+            ? Round(discountableBase * percent / 100m)
             : Round(quotation.DiscountAmount);
 
-        // A discount larger than the quotation would make the taxable value negative and the GST
+        // A discount larger than its own base would make the taxable value negative and the GST
         // a credit. Clamp rather than reject: the estimator is mid-edit, not attacking anything.
-        if (quotation.DiscountAmount > quotation.Subtotal)
+        if (quotation.DiscountAmount > discountableBase)
         {
-            quotation.DiscountAmount = quotation.Subtotal;
+            quotation.DiscountAmount = discountableBase;
         }
 
         if (quotation.DiscountAmount < 0m) quotation.DiscountAmount = 0m;

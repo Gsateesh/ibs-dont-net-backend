@@ -8,6 +8,17 @@ public sealed class LeadListItemResponse
 {
     public Guid Id { get; set; }
 
+    /// <summary>"CUS-0001" style, assigned once at creation and never renumbered.</summary>
+    public string CustomerCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Carries the raw number from the EF projection below to where <see cref="CustomerCode"/>
+    /// is formatted, after the query has run - <c>Lead.CustomerCode</c> is a computed property
+    /// EF cannot translate to SQL, the same reason FullName is built by hand in that Select too.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int CustomerNumber { get; set; }
+
     public string FullName { get; set; } = string.Empty;
 
     public string Email { get; set; } = string.Empty;
@@ -69,6 +80,10 @@ public sealed class LeadListItemResponse
 public sealed class LeadDetailResponse
 {
     public Guid Id { get; set; }
+
+    /// <summary>"CUS-0001" style, assigned once at creation and never renumbered.</summary>
+    public string CustomerCode { get; set; } = string.Empty;
+
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
@@ -242,7 +257,12 @@ public sealed class CreateLeadRequest
     [MaxLength(100)]
     public string? LastName { get; set; }
 
-    [Required, EmailAddress, MaxLength(256)]
+    /// <summary>
+    /// Optional: plenty of enquiries arrive with only a phone number. When given, it still has
+    /// to look like an email - <see cref="OptionalEmailAddressAttribute"/> is what lets an empty
+    /// string through where the built-in <see cref="EmailAddressAttribute"/> would reject it.
+    /// </summary>
+    [OptionalEmailAddress, MaxLength(256)]
     public string Email { get; set; } = string.Empty;
 
     [Required, Phone, MaxLength(20)]
@@ -257,7 +277,7 @@ public sealed class CreateLeadRequest
     [Required, MaxLength(200)]
     public string PropertyName { get; set; } = string.Empty;
 
-    [Required, MaxLength(500)]
+    [MaxLength(500)]
     public string AddressLine1 { get; set; } = string.Empty;
 
     [MaxLength(500)]
@@ -329,7 +349,12 @@ public sealed class UpdateLeadRequest
     [MaxLength(100)]
     public string? LastName { get; set; }
 
-    [Required, EmailAddress, MaxLength(256)]
+    /// <summary>
+    /// Optional: plenty of enquiries arrive with only a phone number. When given, it still has
+    /// to look like an email - <see cref="OptionalEmailAddressAttribute"/> is what lets an empty
+    /// string through where the built-in <see cref="EmailAddressAttribute"/> would reject it.
+    /// </summary>
+    [OptionalEmailAddress, MaxLength(256)]
     public string Email { get; set; } = string.Empty;
 
     [Required, Phone, MaxLength(20)]
@@ -344,7 +369,7 @@ public sealed class UpdateLeadRequest
     [Required, MaxLength(200)]
     public string PropertyName { get; set; } = string.Empty;
 
-    [Required, MaxLength(500)]
+    [MaxLength(500)]
     public string AddressLine1 { get; set; } = string.Empty;
 
     [MaxLength(500)]
@@ -501,4 +526,17 @@ public sealed class LeadFloorPlanContent
     public required string FileName { get; init; }
 
     public string ContentType { get; init; } = "application/octet-stream";
+}
+
+/// <summary>
+/// <see cref="EmailAddressAttribute"/> rejects an empty string - it is only null it treats as
+/// "not provided" - which is exactly wrong for a field that is optional and empty by default.
+/// This delegates to it for anything non-blank and passes blank through untouched.
+/// </summary>
+public sealed class OptionalEmailAddressAttribute : ValidationAttribute
+{
+    private static readonly EmailAddressAttribute Inner = new();
+
+    public override bool IsValid(object? value) =>
+        value is not string text || string.IsNullOrWhiteSpace(text) || Inner.IsValid(text);
 }

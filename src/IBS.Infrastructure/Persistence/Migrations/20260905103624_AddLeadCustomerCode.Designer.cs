@@ -4,6 +4,7 @@ using IBS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IBS.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(IbsDbContext))]
-    partial class IbsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260905103624_AddLeadCustomerCode")]
+    partial class AddLeadCustomerCode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
